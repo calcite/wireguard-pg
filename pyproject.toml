@@ -1,0 +1,26 @@
+[project]
+name = "template_project"
+version = "0.1.0"
+description = "Teplate project"
+authors = [
+    {name = "Martin Korbel", email = "korbel@blackserver.cz"},
+]
+dependencies = [
+    "asyncpg>=0.30.0",
+    "loggate>=1.11.0",
+    "pyyaml>=6.0.2",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+    "pyjwt>=2.10.1",
+    "packaging>=24.2",
+]
+requires-python = ">=3.13"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+package-type = "backend"

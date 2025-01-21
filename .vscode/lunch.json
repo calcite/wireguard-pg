@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "compounds": [
+      {
+        "name": "Run All",
+        "configurations": [
+          "Run Backend",
+          "Run Frontend"
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "name": "Run Backend",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "uvicorn",
+        "args" : [ "app:app", "--port", "8080", "--reload", "--host", "0.0.0.0", "--log-level", "debug", "--env-file", "../.env"],
+        "cwd": "${workspaceFolder}/src/",
+        "console": "internalConsole"
+      },
+    ]
+  }
