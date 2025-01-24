@@ -1,0 +1,43 @@
+profiles:
+  default:
+    filters:
+      warning:
+        class: loggate.LowerLogLevelFilter
+        level: WARNING
+
+    formatters:
+      colored:
+        class: loggate.LogColorFormatter
+      loki:
+        class: loggate.loki.LokiLogFormatter
+
+    handlers:
+      stdout:
+        class: logging.StreamHandler
+        stream: ext://sys.stdout
+        formatter: colored
+        filters:
+          - warning
+      stderr:
+        class: logging.StreamHandler
+        stream: ext://sys.stderr
+        formatter: colored
+        level: WARNING
+    loggers:
+      root:
+        level: DEBUG       # This is updated by system events
+        handlers:
+          - stdout
+          - stderr
+      sqlalchemy.engine.Engine:
+        level: INFO
+      urllib3.connectionpool:
+        level: INFO
+      aiohttp.access:
+        level: WARNING
+      gunicorn.access:
+        level: WARNING
+      socketio:
+        level: WARNING
+      watchfiles.main:
+        level: WARNING

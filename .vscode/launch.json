@@ -5,7 +5,6 @@
         "name": "Run All",
         "configurations": [
           "Run Backend",
-          "Run Frontend"
         ]
       }
     ],
@@ -15,9 +14,13 @@
         "type": "debugpy",
         "request": "launch",
         "module": "uvicorn",
-        "args" : [ "app:app", "--port", "8080", "--reload", "--host", "0.0.0.0", "--log-level", "debug", "--env-file", "../.env"],
+        "args" : [ "app:app", "--port", "9080", "--reload", "--no-access-log", "--host", "0.0.0.0", "--log-level", "debug"], //"--env-file", "../.env"],
         "cwd": "${workspaceFolder}/src/",
-        "console": "internalConsole"
-      },
+        "console": "internalConsole",
+        "env": {
+          "DATABASE_URI": "postgresql://dbuser:test@db:5432/devdb",
+          // "WIREGUARD_CONFIG_FOLDER": "/workspace/tmp"
+        }
+      }
     ]
   }

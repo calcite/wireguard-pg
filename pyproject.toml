@@ -1,18 +1,19 @@
 [project]
-name = "template_project"
+name = "wireguard_server"
 version = "0.1.0"
-description = "Teplate project"
+description = "WireGuard configured by SQL"
 authors = [
     {name = "Martin Korbel", email = "korbel@blackserver.cz"},
 ]
 dependencies = [
     "asyncpg>=0.30.0",
-    "loggate>=1.11.0",
     "pyyaml>=6.0.2",
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
     "pyjwt>=2.10.1",
     "packaging>=24.2",
+    "python-multipart>=0.0.20",
+    "loggate>=1.12.0",
 ]
 requires-python = ">=3.13"
 readme = "README.md"
@@ -23,4 +24,4 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [tool.pdm]
-package-type = "backend"
+distribution = false

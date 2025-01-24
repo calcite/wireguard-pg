@@ -1,0 +1,43 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/workspace
+    command: sleep infinity
+    user: vscode
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    ports:
+      - 9080:9080
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
+
+  db:
+    image: postgres:13
+    # user: 1000:1000
+    environment:
+      # POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: devdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # ports:
+    #   - 5432:5432
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 9085:8080
+
+volumes:
+  db-data:
