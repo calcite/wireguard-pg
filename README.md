@@ -57,7 +57,7 @@ The PostgreSQL database contains the following tables:
     | persistent_keepalive | INT | optional | in seconds
     | allowed_ips | VARCHAR(256) | |
     | endpoint | VARCHAR(256) | optional | Server endpoint
-    | address | VARCHAR(256) | | IP address of the interface.
+    | address | VARCHAR(256) | | IP address of the peer.
     | updated_at | TIMESTAMP | NOW() | Automatically set by update
     | created_at | TIMESTAMP | NOW() | Automatically set by create
     | enabled | BOOL | TRUE |
