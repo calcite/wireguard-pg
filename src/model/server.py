@@ -8,7 +8,7 @@ from asyncpg import Connection, Pool
 from loggate import getLogger
 
 from config import get_config
-from lib.db import DBConnection
+from lib.db import DBConnection, db_logger
 from model.interface import Interface, InterfaceDB
 from model.peer import Peer, PeerDB
 
@@ -29,13 +29,14 @@ class WGServer:
         DBConnection.register_notification('interface', self.notification_interface)
         DBConnection.register_notification('peer', self.notification_peer)
 
-    def cmd(self, *args) -> subprocess.CompletedProcess:
+    def cmd(self, *args, capture_output=True, ignore_error=False) -> subprocess.CompletedProcess:
         try:
             return subprocess.run(
-                ['sudo', *args], text=True, check=True, capture_output=True
+                args, text=True, check=True, capture_output=capture_output
             )
         except subprocess.CalledProcessError as e:
-            logger.error(e.stderr)
+            if not ignore_error:
+                logger.error(e.stderr)
         return None
 
     def create_config(self, iface: Interface, peers: List[Peer], folder: str,
@@ -61,31 +62,33 @@ class WGServer:
         return file_name
 
     def is_interface_exist(self, iface):
-        res = self.cmd('ip', 'link', 'show', iface)
+        res = self.cmd('ip', 'link', 'show')
         return res and res.returncode == 0
 
     def interface_down(self, iface):
-        logger.info('Stop interface %s', iface)
-        res = self.cmd('wg-quick', 'down', iface)
-        if not res or res.returncode != 0:
-            logger.warning('Problem with stopping interface.')
+        if self.is_interface_exist(iface):
+            logger.info('Stop interface %s', iface)
+            res = self.cmd('wg-quick', 'down', iface)
+            if not res or res.returncode != 0:
+                logger.warning('Problem with stopping interface.')
 
     def interface_up(self, iface):
-        if self.is_interface_exist(iface):
-            self.interface_down(iface)
+        self.interface_down(iface)
         logger.info('Start interface %s', iface)
         res = self.cmd('wg-quick', 'up', iface)
         if not res or res.returncode != 0:
             logger.warning('Problem with starting interface %s.', iface)
 
     async def start_server(self, db_conn: DBConnection):
+        logger.info('Starting server')
         WIREGUARD_CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
         if db_conn.pool:
-            async with db_conn.pool.acquire() as db:
+            async with db_conn.pool.acquire() as db, db_logger('server', db):
                 ifaces = await InterfaceDB.gets(
                     db, 'server_name=$1 AND enabled=true', self.server_name
                 )
                 for iface in ifaces:
+                    logger.debug('Update config for %s', iface.interface_name)
                     self.interface_ids.add(iface.id)
                     peers = await PeerDB.gets(
                         db, 'interface_id=$1 AND enabled=true', iface.id
@@ -94,6 +97,7 @@ class WGServer:
                         iface, peers, WIREGUARD_CONFIG_FOLDER, True
                     )
         for conf in WIREGUARD_CONFIG_FOLDER.glob('*.conf'):
+            logger.info('Load %s', conf)
             iface = self.get_iface_from_config(conf)
             self.interface_up(iface)
 
@@ -111,7 +115,7 @@ class WGServer:
             # interface deleted or disabled
             iface = old_row.get('name')
             logger.info('Interface %s was deleted.', iface)
-            self.interface_down(iface)
+            self.interface_down(iface.interface_name)
             os.remove('{WIREGUARD_CONFIG_FOLDER}/{iface}.conf')
             return
         iface = Interface(**new_row)
@@ -121,7 +125,7 @@ class WGServer:
         self.create_config(
             iface, peers, WIREGUARD_CONFIG_FOLDER, True
         )
-        self.interface_up(iface)
+        self.interface_up(iface.interface_name)
 
 
     async def notification_peer(self, db: Connection, channel, payload):
