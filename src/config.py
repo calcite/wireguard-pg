@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from typing import Callable
@@ -22,7 +23,9 @@ DEFAULT_CONFIG = {
     'CORS_ALLOW_METHODS': '*',  # comma separated
     'CORS_ALLOW_HEADERS': '*',  # comma separated
     'CORS_ALLOW_CREDENTIALS': 'yes',
-    'WIREGUARD_CONFIG_FOLDER': '/config'
+    'WIREGUARD_CONFIG_FOLDER': '/config',
+    'ENABLE_API': 'no',
+    'LOG_LEVEL': 'INFO'
 }
 
 
@@ -41,3 +44,20 @@ def apply_config(pattern: str):
 def to_bool(val) -> bool:
     return str(val).upper() in ['1', 'Y', 'YES', 'T', 'TRUE']
 
+
+_logname_to_level = {
+    'CRITICAL': logging.CRITICAL,
+    'FATAL': logging.FATAL,
+    'ERROR': logging.ERROR,
+    'WARN': logging.WARNING,
+    'WARNING': logging.WARNING,
+    'INFO': logging.INFO,
+    'DEBUG': logging.DEBUG,
+    'NOTSET': logging.NOTSET,
+}
+
+
+def log_level(name):
+    if isinstance(name, int):
+        return name
+    return _logname_to_level.get(name.upper(), logging.INFO)

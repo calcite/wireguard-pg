@@ -1,3 +1,4 @@
+from typing import List
 from asyncpg import Pool
 import loggate
 from fastapi import APIRouter, Depends, Security, HTTPException, status
@@ -10,6 +11,14 @@ router = APIRouter(tags=["interface"])
 sql_logger = 'sql.interface'
 logger = loggate.getLogger('Interface')
 
+
+@router.get("/", response_model=List[Interface])
+async def get_file(pool: Pool = Depends(db_pool),
+                   user: User = Security(get_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    async with pool.acquire() as db, db_logger(sql_logger, db):
+        return await InterfaceDB.gets(db)
 
 @router.get("/{Interface_id}", response_model=Interface)
 async def get_file(Interface_id: int,

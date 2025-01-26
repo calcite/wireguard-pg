@@ -61,8 +61,8 @@ class WGServer:
                     fd.write('\n')
         return file_name
 
-    def is_interface_exist(self, iface):
-        res = self.cmd('ip', 'link', 'show')
+    def is_interface_exist(self, iface: str):
+        res = self.cmd('ip', 'link', 'show', iface, ignore_error=True)
         return res and res.returncode == 0
 
     def interface_down(self, iface):

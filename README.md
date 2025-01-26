@@ -111,10 +111,12 @@ The PostgreSQL database contains the following tables:
     - `CORS_ALLOW_HEADERS`: *     # comma separated
     - `CORS_ALLOW_CREDENTIALS`:  yes
     - `WIREGUARD_CONFIG_FOLDER`: /config
+    - `ENABLE_API`: no
+    - `LOG_LEVEL`: INFO
 
 1. **Run docker container**
     ```shell
-    > docker run --rm -it --name wg1 --pid=host --cap-add NET_ADMIN --cap-add SYS_MODULE --network host -e DATABASE_URI=postgresql://dbuser:test@db_server:5432/devdb docker.io/library/wireguard-pg:local
+    > docker run --rm -it --name wg1 -e LOG_LEVEL=debug -v (pwd)/tmp:/config --pid=host --cap-add NET_ADMIN --cap-add SYS_MODULE --network host -e DATABASE_URI=postgresql://dbuser:test@db_server:5432/db wireguard-pg:local
     ```
 
 ## Example Workflow

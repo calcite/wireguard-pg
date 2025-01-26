@@ -1,7 +1,7 @@
 import hashlib
 from typing import Optional
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2
 import jwt
 import loggate
 from pydantic import BaseModel, Field
@@ -11,13 +11,13 @@ from config import get_config
 
 
 JWT_SECRET = get_config('JWT_SECRET')
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/login", auto_error=False)
+oauth2_scheme = OAuth2(auto_error=False)
 logger = loggate.get_logger('user')
 
 
-class UserCreate(BaseModel):
-    username: str = Field(max_length=32)
-    pw_hash: str = Field(max_length=64)
+# class UserCreate(BaseModel):
+#     username: str = Field(max_length=32)
+#     pw_hash: str = Field(max_length=64)
 
 
 class User(BaseModel):
@@ -25,14 +25,14 @@ class User(BaseModel):
     username: str = Field(max_length=32)
 
 
-class LoginRequest(BaseModel):
-    username: str = Field(max_length=32)
-    password: str = Field(max_length=64)
-    # grant_type: Optional[str]
+# class LoginRequest(BaseModel):
+#     username: str = Field(max_length=32)
+#     password: str = Field(max_length=64)
+#     # grant_type: Optional[str]
 
-    @property
-    def hash(self) -> str:
-        return hashlib.sha256(f"{self.password}@{self.username}".encode('utf-8')).hexdigest()
+#     @property
+#     def hash(self) -> str:
+#         return hashlib.sha256(f"{self.password}@{self.username}".encode('utf-8')).hexdigest()
 
 
 class JWT(BaseModel):
@@ -71,29 +71,29 @@ def get_user(token: str = Depends(oauth2_scheme)) -> User:
     return JWT(access_token=token).get_user()
 
 
-class UserDB(BaseDBModel):
-    class Meta:
-        db_table = 'user'
-        PYDANTIC_CLASS = User
+# class UserDB(BaseDBModel):
+#     class Meta:
+#         db_table = 'user'
+#         PYDANTIC_CLASS = User
 
-    @classmethod
-    async def create_init_user(cls, db: Connection, login: LoginRequest) -> None:
-        """
-        Create a new user in the database (application initialization)
-        """
-        users = await db.fetchval(f'SELECT count(*) FROM "{cls.Meta.db_table}"')
+#     @classmethod
+#     async def create_init_user(cls, db: Connection, login: LoginRequest) -> None:
+#         """
+#         Create a new user in the database (application initialization)
+#         """
+#         users = await db.fetchval(f'SELECT count(*) FROM "{cls.Meta.db_table}"')
 
-        if users == 0:
-            user = UserCreate(
-                username=login.username,
-                pw_hash=login.hash
-            )
-            await user.save(db)
+#         if users == 0:
+#             user = UserCreate(
+#                 username=login.username,
+#                 pw_hash=login.hash
+#             )
+#             await user.save(db)
 
-    @classmethod
-    async def login(cls, db: Connection, login: LoginRequest) -> JWT:
-        row = await db.fetchrow(
-            f'SELECT * FROM "{cls.Meta.db_table}" WHERE username = $1 AND pw_hash = $2',
-            login.username, login.hash
-        )
-        return JWT.get_jwt(User(**row)) if row else None
+#     @classmethod
+#     async def login(cls, db: Connection, login: LoginRequest) -> JWT:
+#         row = await db.fetchrow(
+#             f'SELECT * FROM "{cls.Meta.db_table}" WHERE username = $1 AND pw_hash = $2',
+#             login.username, login.hash
+#         )
+#         return JWT.get_jwt(User(**row)) if row else None
