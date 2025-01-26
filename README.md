@@ -23,8 +23,8 @@ The PostgreSQL database contains the following tables:
     | id     | SERIAL  |   | Primary key |
     | namserver_name   | VARCHAR(64) | | Name of application instance. |
     | interface_name   | VARCHAR(64) | | Name of interface.    |
-    | private_key  | VARCHAR(256) | optional | Private key.
-    | public_key | VARCHAR(256) | | Public key. |
+    | private_key  | VARCHAR(256) |  | Private key or path to private key file.
+    | public_key | VARCHAR(256) | optional | Public key. |
     | listen_port | INT | | Listen port |
     | address | VARCHAR(256) | | IP address of the interface.
     | dns | VARCHAR(256) | optional | DNS servers.
@@ -121,7 +121,7 @@ The PostgreSQL database contains the following tables:
 
 1. Add a new interface:
     ```sql
-    INSERT INTO interface (namserver_name, interface_name, address, private_key, public_key, listen_port)
+    INSERT INTO interface (server_name, interface_name, address, private_key, public_key, listen_port)
     VALUES ('default', 'wg0', '10.0.0.1', 'your_private_key_here', 'public_key_here', 51820);
     ```
 

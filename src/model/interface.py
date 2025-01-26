@@ -2,6 +2,7 @@ from typing import Optional, OrderedDict
 from datetime import datetime
 from pydantic import BaseModel, Field
 from config import get_config
+from lib.helper import get_file_content
 from model.base import BaseDBModel, BasePModel
 
 INTERFACE_TABLE = get_config('DATABASE_INTERFACE_TABLE_NAME')
@@ -34,9 +35,14 @@ class InterfaceCreate(InterfaceUpdate):
 
 class Interface(InterfaceCreate, BasePModel):
 
+    def get_private_key(self):
+        if self.private_key.startswith('/'):
+            return get_file_content(self.private_key)
+        return self.private_key
+
     def get_config(self, full: bool = False) -> str:
         res = OrderedDict()
-        res['PrivateKey'] = self.private_key
+        res['PrivateKey'] = self.get_private_key()
         res['# PublicKey'] = self.public_key
         res['ListenPort'] = self.listen_port
         if self.fw_mark:
