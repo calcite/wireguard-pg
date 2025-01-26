@@ -18,49 +18,49 @@ The PostgreSQL database contains the following tables:
 
     Stores configuration details for WireGuard interfaces.
 
-    | Column | Type | Description |
-    | ----------- | ----------- | ----------- |
-    | id     | SERIAL     | Primary key |
-    | namserver_name   | VARCHAR(64) | Name of application instance. |
-    | interface_name   | VARCHAR(64) | Name of interface.    |
-    | private_key  | VARCHAR(256) | Private key. - optional
-    | public_key | VARCHAR(256) | Public key. |
-    | listen_port | INT | Listen port |
-    | address | VARCHAR(256) | IP address of the interface.
-    | dns | VARCHAR(256) | DNS servers. - optional
-    | public_endpoint | VARCHAR(256) | Public address with port of WireGuard instance. - optional
-    | subnet | VARCHAR(256) | IP subnet for automatically assign to peers. - optional
-    | mtu | INT |  optional
-    | fw_mark | INT | optional
-    | table | VARCHAR(32) | routing table - optional
-    | pre_up | TEXT | optional
-    | post_up | TEXT | optional
-    | pre_down | TEXT | optional
-    | post_down | TEXT | optional
-    | updated_at | TIMESTAMP |
-    | created_at | TIMESTAMP |
-    | enabled | BOOL
+    | Column | Type |  | Description |
+    | ----------- | ----------- | ----------- | ----------- |
+    | id     | SERIAL  |   | Primary key |
+    | namserver_name   | VARCHAR(64) | | Name of application instance. |
+    | interface_name   | VARCHAR(64) | | Name of interface.    |
+    | private_key  | VARCHAR(256) | optional | Private key.
+    | public_key | VARCHAR(256) | | Public key. |
+    | listen_port | INT | | Listen port |
+    | address | VARCHAR(256) | | IP address of the interface.
+    | dns | VARCHAR(256) | optional | DNS servers.
+    | public_endpoint | VARCHAR(256) | optional | Public address with port of WireGuard instance.
+    | subnet | VARCHAR(256) | optional | IP subnet for automatically assign to peers.
+    | mtu | INT |  optional |
+    | fw_mark | INT | optional |
+    | table | VARCHAR(32) | optional | routing table
+    | pre_up | TEXT | optional |
+    | post_up | TEXT | optional |
+    | pre_down | TEXT | optional |
+    | post_down | TEXT | optional |
+    | updated_at | TIMESTAMP | NOW() | Automatically set by update
+    | created_at | TIMESTAMP | NOW() | Automatically set by create
+    | enabled | BOOL | TRUE |
 
 2. `peer`
 
     Stores configuration details for WireGuard peers.
 
-    | Column | Type | Description |
-    | ----------- | ----------- | ----------- |
-    | id     | SERIAL     | Primary key |
-    | interface_id  | INT | reference to interface
-    | name |  VARCHAR(64) | Name of the peer/user.
-    | description |  VARCHAR(256) | Description
-    | private_key | VARCHAR(256) | Private key. - optional
-    | public_key | VARCHAR(256) | Public key. |
-    | preshared_key | VARCHAR(256) | Preshared key. |
-    | persistent_keepalive | INT | in seconds  - optional
-    | allowed_ips | VARCHAR(256) |
-    | endpoint | VARCHAR(256) | Server endpoint - optional
-    | address | VARCHAR(256) | IP address of the interface.
-    | updated_at | TIMESTAMP |
-    | created_at | TIMESTAMP |
-    | enabled | BOOL
+    | Column | Type | | Description |
+    | ----------- | ----------- | ----------- | ----------- |
+    | id     | SERIAL  |   | Primary key |
+    | interface_id  | INT | | reference to interface
+    | name |  VARCHAR(64) | | Name of the peer/user.
+    | description |  VARCHAR(256) | optional | Description
+    | private_key | VARCHAR(256) | optional | Private key.
+    | public_key | VARCHAR(256) | | Public key. |
+    | preshared_key | VARCHAR(256) | optional | Preshared key. |
+    | persistent_keepalive | INT | optional | in seconds
+    | allowed_ips | VARCHAR(256) | |
+    | endpoint | VARCHAR(256) | optional | Server endpoint
+    | address | VARCHAR(256) | | IP address of the interface.
+    | updated_at | TIMESTAMP | NOW() | Automatically set by update
+    | created_at | TIMESTAMP | NOW() | Automatically set by create
+    | enabled | BOOL | TRUE |
 
 ## Requirements
 
