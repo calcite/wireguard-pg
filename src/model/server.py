@@ -9,6 +9,7 @@ from loggate import getLogger
 
 from config import get_config
 from lib.db import DBConnection, db_logger
+from lib.helper import cmd
 from model.interface import Interface, InterfaceDB
 from model.peer import Peer, PeerDB
 
@@ -28,16 +29,6 @@ class WGServer:
         self.interface_ids = set()
         DBConnection.register_notification('interface', self.notification_interface)
         DBConnection.register_notification('peer', self.notification_peer)
-
-    def cmd(self, *args, capture_output=True, ignore_error=False) -> subprocess.CompletedProcess:
-        try:
-            return subprocess.run(
-                args, text=True, check=True, capture_output=capture_output
-            )
-        except subprocess.CalledProcessError as e:
-            if not ignore_error:
-                logger.error(e.stderr)
-        return None
 
     def create_config(self, iface: Interface, peers: List[Peer], folder: str,
                       full: bool) -> str:
@@ -62,20 +53,20 @@ class WGServer:
         return file_name
 
     def is_interface_exist(self, iface: str):
-        res = self.cmd('ip', 'link', 'show', iface, ignore_error=True)
+        res = cmd('ip', 'link', 'show', iface, ignore_error=True)
         return res and res.returncode == 0
 
     def interface_down(self, iface):
         if self.is_interface_exist(iface):
             logger.info('Stop interface %s', iface)
-            res = self.cmd('wg-quick', 'down', iface)
+            res = cmd('wg-quick', 'down', iface)
             if not res or res.returncode != 0:
                 logger.warning('Problem with stopping interface.')
 
     def interface_up(self, iface):
         self.interface_down(iface)
         logger.info('Start interface %s', iface)
-        res = self.cmd('wg-quick', 'up', iface)
+        res = cmd('wg-quick', 'up', iface)
         if not res or res.returncode != 0:
             logger.warning('Problem with starting interface %s.', iface)
 
@@ -146,7 +137,7 @@ class WGServer:
                 db, 'interface_id=$1 AND enabled=true', iface.id
             )
             tmp_config_file = self.create_config(iface, peers, '/tmp', False)
-            res = self.cmd(
+            res = cmd(
                 'wg', 'syncconf', iface.interface_name, tmp_config_file
             )
             if not res or res.returncode != 0:

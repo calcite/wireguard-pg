@@ -2,6 +2,7 @@
 import asyncio
 from fastapi import FastAPI, Response
 from fastapi.concurrency import asynccontextmanager
+from fastapi.openapi.models import SecuritySchemeType
 from fastapi.middleware.cors import CORSMiddleware
 from loggate import getLogger, setup_logging
 

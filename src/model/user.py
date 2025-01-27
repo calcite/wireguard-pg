@@ -7,11 +7,11 @@ import loggate
 from pydantic import BaseModel, Field
 from model.base import BaseDBModel
 from asyncpg import Connection
-from config import get_config
+from config import get_config, to_bool
 
 
 JWT_SECRET = get_config('JWT_SECRET')
-oauth2_scheme = OAuth2(auto_error=False)
+oauth2_scheme = OAuth2( auto_error=False)
 logger = loggate.get_logger('user')
 
 
@@ -68,7 +68,9 @@ def get_service_token(username, id):
 
 
 def get_user(token: str = Depends(oauth2_scheme)) -> User:
-    return JWT(access_token=token).get_user()
+    if get_config('REQUIRED_API_TOKEN', wrapper=to_bool):
+        return JWT(access_token=token).get_user()
+    return User(username='service_token', id=1)
 
 
 # class UserDB(BaseDBModel):

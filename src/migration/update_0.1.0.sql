@@ -9,7 +9,7 @@ CREATE TABLE "interface" (
   "address" character varying(256) NOT NULL,
   "dns" character varying(256) NULL,
   "public_endpoint" character varying(256) NULL,
-  "subnet" character varying(256) NULL,
+  "ip_range" character varying(256) NULL,
   "mtu" integer NULL,
   "fw_mark" integer NULL,
   "table" character varying(32) NULL,

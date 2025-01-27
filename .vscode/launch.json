@@ -19,7 +19,8 @@
         "console": "internalConsole",
         "env": {
           "DATABASE_URI": "postgresql://dbuser:test@db:5432/devdb",
-          "ENABLE_API": "yes"
+          "ENABLE_API": "yes",
+          "REQUIRED_API_TOKEN": "no",
           // "WIREGUARD_CONFIG_FOLDER": "/workspace/tmp"
         }
       }

@@ -25,7 +25,8 @@ DEFAULT_CONFIG = {
     'CORS_ALLOW_CREDENTIALS': 'yes',
     'WIREGUARD_CONFIG_FOLDER': '/config',
     'ENABLE_API': 'no',
-    'LOG_LEVEL': 'INFO'
+    'REQUIRED_API_TOKEN': 'yes',
+    'LOG_LEVEL': 'INFO',
 }
 
 
