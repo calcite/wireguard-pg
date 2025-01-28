@@ -24,6 +24,7 @@ class WGServer:
     def get_iface_from_config(path: str):
         return os.path.basename(path).replace('.conf', '')
 
+
     def __init__(self, server_name: str) -> None:
         self.server_name = server_name
         self.interface_ids = set()
@@ -102,12 +103,16 @@ class WGServer:
         old_row = payload.get('old')
         if not old_row:
             old_row = {}
-        if not new_row or not new_row.get('enabled'):
-            # interface deleted or disabled
-            iface = old_row.get('name')
+        if not new_row or not new_row.get('enabled') or \
+            (new_row.get('server_name') != self.server_name and \
+              old_row.get('server_name') == self.server_name):
+            # interface deleted or disabled or interface was moved to new server
+            iface = old_row.get('interface_name')
             logger.info('Interface %s was deleted.', iface)
-            self.interface_down(iface.interface_name)
+            self.interface_down(iface)
             os.remove('{WIREGUARD_CONFIG_FOLDER}/{iface}.conf')
+            return
+        if new_row.get('server_name') != self.server_name:
             return
         iface = Interface(**new_row)
         peers = await PeerDB.gets(

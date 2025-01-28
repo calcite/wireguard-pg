@@ -7,7 +7,7 @@ from asyncpg import Connection
 import loggate
 from pydantic import BaseModel, Field, field_validator, model_validator
 from config import get_config
-from lib.helper import cmd, get_file_content
+from lib.helper import cmd, get_file_content, get_wg_private_key, get_wg_public_key
 from model.base import BaseDBModel, BasePModel
 
 INTERFACE_TABLE = get_config('DATABASE_INTERFACE_TABLE_NAME')
@@ -99,36 +99,29 @@ class InterfaceUpdate(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def check_keys(cls, data) -> Self:
+    def check_keys(cls, data) -> dict:
         if not data.get('private_key'):
-            genkey_process = subprocess.run(
-                ('wg', 'genkey'), capture_output=True, text=True, check=True
-            )
-            data['private_key'] = genkey_process.stdout.strip()
-        private_key = data.get('private_key')
-        if private_key.startswith('/') and not data.get('public_key'):
+            data['private_key'] = get_wg_private_key()
+        elif data['private_key'].startswith('/') and not data.get('public_key'):
             raise InterfaceError(
                 'If the private key is placed in local file %s, '
                 'the public key is required.',
-                private_key
+                data['private_key']
             )
         if not data.get('public_key'):
-            pubkey_process = subprocess.run(
-                ('wg', 'pubkey'), input=private_key, capture_output=True,
-                text=True, check=True
-            )
-            data['public_key'] = pubkey_process.stdout.strip()
+            data['public_key'] = get_wg_public_key(data['private_key'])
         if ip_range := cls.validate_ip_range(data.get('ip_range')):
             data['ip_range'] = ip_range
         return data
 
 
 class InterfaceCreate(InterfaceUpdate):
-    updated_at: datetime = Field(default_factory=datetime.now)
-    created_at: datetime = Field(default_factory=datetime.now)
+    pass
 
 
 class Interface(InterfaceCreate, BasePModel):
+    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.now)
 
     def get_private_key(self):
         if self.private_key.startswith('/'):
@@ -183,7 +176,7 @@ class InterfaceDB(BaseDBModel):
     @classmethod
     async def pre_create(cls, db: Connection,
                          create: InterfaceCreate, **kwargs):
-        if not create.address:
+        if not create.address and create.ip_range:
             ips = list(create.ip_range_to_ips(create.ip_range))
             ips.sort()
             create.address = str(ips.pop(0))
@@ -199,9 +192,11 @@ class InterfaceDB(BaseDBModel):
 
     @classmethod
     async def get_free_ips(cls, db: Connection, interface: Interface) -> List[IPv4Address]:
+        if not interface.ip_range:
+            return
         ips = set(interface.ip_range_to_ips(interface.ip_range))
         used_ips = set()
-        if not hasattr(interface, 'id'):
+        if hasattr(interface, 'id'):
             used_ips = set(await cls.get_used_ips(db, interface.id))
         if interface.address:
             used_ips.add(IPv4Address(interface.address))

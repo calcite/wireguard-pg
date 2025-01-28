@@ -115,7 +115,8 @@ class BaseDBModel:
         fields.update(update.__class__.model_computed_fields)
         for key, meta in fields.items():
             val = getattr(update, key)
-            if not getattr(meta, 'exclude', False) and getattr(obj, key, None) != val:
+            ext = getattr(meta, 'json_schema_extra', None) or {}
+            if not ext.get('no_save', False) and getattr(obj, key, None) != val:
                 ix = len(values) + 1
                 columns.append(f'"{key}" = ${ix}')
                 values.append(val)
@@ -144,7 +145,8 @@ class BaseDBModel:
         fields.update(create.__class__.model_computed_fields)
         for key, meta in fields.items():
             val = getattr(create, key)
-            if not getattr(meta, 'exclude', False):
+            ext = getattr(meta, 'json_schema_extra', None) or {}
+            if not ext.get('no_save', False):
                 columns.append(f'"{key}"')
                 values.append(val)
                 indexes.append(f'${len(values)}')

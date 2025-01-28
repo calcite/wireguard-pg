@@ -3,8 +3,10 @@ from asyncpg import Pool
 import loggate
 from fastapi import APIRouter, Depends, Security, HTTPException, status
 
+from lib.helper import get_wg_private_key, get_wg_public_key
+from model.interface import InterfaceDB
 from model.user import User, get_user
-from model.peer import PeerDB, Peer, PeerUpdate, PeerCreate
+from model.peer import PeerCreated, PeerDB, Peer, PeerUpdate, PeerCreate
 from lib.db import db_pool, db_logger
 
 router = APIRouter(tags=["peer"])
@@ -51,7 +53,7 @@ async def file_delete(peer_id: int,
         await PeerDB.delete(db, peer_id)
 
 
-@router.post("/", response_model=Peer,
+@router.post("/", response_model=PeerCreated,
              status_code=status.HTTP_201_CREATED)
 async def create(create: PeerCreate,
                  pool: Pool = Depends(db_pool),
@@ -59,4 +61,12 @@ async def create(create: PeerCreate,
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     async with pool.acquire() as db, db.transaction(), db_logger(sql_logger, db):
-        return await PeerDB.create(db, create)
+        private_key = None
+        if not create.public_key:
+            private_key = get_wg_private_key()
+            create.public_key = get_wg_public_key(private_key)
+        peer: Peer = await PeerDB.create(db, create)
+        interface = await InterfaceDB.get(db, create.interface_id)
+        peer = PeerCreated(**peer.model_dump(exclude_unset=True), private_key=private_key)
+        peer.generate_client_config(interface)
+        return peer

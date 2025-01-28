@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
     user: vscode
     cap_add:

@@ -35,7 +35,6 @@ CREATE TABLE "peer" (
   "interface_id" integer NOT NULL,
   "name" character varying(64) NOT NULL,
   "description" character varying(256) NULL,
-  "private_key" character varying(256) NULL,
   "public_key" character varying(256) NOT NULL,
   "preshared_key" character varying(256) NULL,
   "persistent_keepalive" integer NULL,

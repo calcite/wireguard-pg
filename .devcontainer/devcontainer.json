@@ -59,13 +59,13 @@
 	//
 	"remoteEnv": {
 		"CONT_PROJECT_ROOT": "${containerWorkspaceFolder}",
-		"HOST_PROJECT_ROOT": "${localWorkspaceFolder}",
-		"DATABASE_URI": "${containerEnv:DATABASE_URI}"
+		"HOST_PROJECT_ROOT": "${localWorkspaceFolder}"
+		// "DATABASE_URI": "${containerEnv:DATABASE_URI}"
 	},
 	"containerEnv": {},
 
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
-    "workspaceFolder": "/workspace",
+    "workspaceFolder": "/workspace"
     // "forwardPorts": [9080]
   }

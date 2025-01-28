@@ -60,3 +60,14 @@ def cmd(*args, capture_output=True, ignore_error=False) -> subprocess.CompletedP
         if not ignore_error:
             loggate.get_logger('cmd').error(e.stderr)
     return None
+
+def get_wg_private_key() -> str:
+    return subprocess.run(
+        ('wg', 'genkey'), capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+def get_wg_public_key(private_key: str) -> str:
+    return subprocess.run(
+        ('wg', 'pubkey'), input=private_key,
+        capture_output=True, text=True, check=True
+    ).stdout.strip()
