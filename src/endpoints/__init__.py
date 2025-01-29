@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Request
-from starlette.status import HTTP_403_FORBIDDEN
+from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 import loggate
 from config import get_config
 
@@ -16,6 +16,10 @@ def check_token(request: Request) -> bool:
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
+    if authorization != TOKEN:
+        raise HTTPException(
             status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
         )
-    return authorization.rsplit(' ')[-1] == TOKEN
+    return True
