@@ -7,8 +7,6 @@ BASE_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/'
 
 DEFAULT_CONFIG = {
     'SERVER_NAME': 'default',
-    'JWT_SECRET': '<secret>',
-    'JWT_ALGORITHM': 'HS256',
     'DATABASE_URI': 'postgres://user:password@localhost:5432/db',
     'DATABASE_INIT': 'yes',
     'DATABASE_INTERFACE_TABLE_NAME': 'interface',
@@ -24,8 +22,7 @@ DEFAULT_CONFIG = {
     'CORS_ALLOW_HEADERS': '*',  # comma separated
     'CORS_ALLOW_CREDENTIALS': 'yes',
     'WIREGUARD_CONFIG_FOLDER': '/config',
-    'ENABLE_API': 'no',
-    'REQUIRED_API_TOKEN': 'yes',
+    'API_ENABLED': 'no',
     'LOG_LEVEL': 'INFO',
 }
 

@@ -1,8 +1,6 @@
 FROM python:3.13-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ARG USER_UID=991
-# ARG USER_GID=991
 WORKDIR /app
 
 RUN apt-get update \
@@ -21,11 +19,6 @@ RUN apt-get update \
     #     ln -s ip6tables-legacy$(echo "${i}" | cut -c2-) ip6tables$(echo "${i}" | cut -c2-); \
     #     done \
     && sed -i 's|\[\[ $proto == -4 \]\] && cmd sysctl -q net\.ipv4\.conf\.all\.src_valid_mark=1|[[ $proto == -4 ]] \&\& [[ $(sysctl -n net.ipv4.conf.all.src_valid_mark) != 1 ]] \&\& cmd sysctl -q net.ipv4.conf.all.src_valid_mark=1|' /usr/bin/wg-quick \
-    # [Optional] Add sudo support for non-root user
-    # && groupadd --gid $USER_GID wireguard \
-    # && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m wireguard \
-    # && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    # && chmod 0440 /etc/sudoers.d/$USERNAME \
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -37,7 +30,8 @@ COPY pdm.lock  /app/
 RUN python -m pip install --upgrade --no-cache-dir py.lockfile2 \
   && mkdir -p /wheels \
   && py.lockfile -s /app/pdm.lock -t /wheels \
-  && pip install /wheels/*
+  && pip install /wheels/* \
+  && rm -rf /wheels
 
 # USER wireguard
 ENV DEBIAN_FRONTEND=

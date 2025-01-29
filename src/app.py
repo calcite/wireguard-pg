@@ -1,8 +1,5 @@
-
-import asyncio
 from fastapi import FastAPI, Response
 from fastapi.concurrency import asynccontextmanager
-from fastapi.openapi.models import SecuritySchemeType
 from fastapi.middleware.cors import CORSMiddleware
 from loggate import getLogger, setup_logging
 
@@ -10,7 +7,6 @@ from config import get_config, log_level, to_bool
 from lib.db import DBConnection
 from lib.helper import dicts_val, get_yaml
 from model.server import WGServer
-from model.user import get_service_token
 
 SERVER_NAME = get_config('SERVER_NAME')
 
@@ -21,7 +17,6 @@ if get_config('LOG_LEVEL'):
 setup_logging(profiles=logging_profiles)
 
 logger = getLogger('main')
-
 wg_server = WGServer(SERVER_NAME)
 
 
@@ -30,9 +25,10 @@ async def lifespan(app: FastAPI):
     conn = DBConnection()
     await conn.start()
     try:
-        # await wg_server.start_server(conn)
+        await wg_server.start_server(conn)
         yield
     finally:
+        await wg_server.stop_server(conn)
         await conn.stop()
 
 
@@ -45,15 +41,14 @@ app.add_middleware(
     allow_headers=get_config('CORS_ALLOW_HEADERS').split(','),
 )
 
-if get_config('ENABLE_API', wrapper=to_bool):
-    token = get_service_token('service_token', 1)
-    print('#'*150, f'\n\n  API token: {token}\n\n', '#'*150)
-
+if get_config('API_ENABLED', wrapper=to_bool):
+    if not get_config('API_ACCESS_TOKEN'):
+        logger.warning('You have not setup API_ACCESS_TOKEN. Whole API is '
+                       'accessible for everyone. This is only for debug.')
     from endpoints.interface import router as interface_router        # noqa
     app.include_router(interface_router, prefix="/api/interface")
     from endpoints.peer import router as peer_router        # noqa
     app.include_router(peer_router, prefix="/api/peer")
-    # app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/", include_in_schema=False)

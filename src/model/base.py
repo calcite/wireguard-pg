@@ -183,4 +183,3 @@ class BaseDBModel:
                 f'Object {_cls.__name__} not found: {obj}')
         if hasattr(_cls, 'post_delete'):
             await _cls.post_delete(db, obj, **kwargs)
-

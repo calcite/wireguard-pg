@@ -1,13 +1,13 @@
-from ipaddress import AddressValueError, IPv4Address, IPv4Network, collapse_addresses, summarize_address_range
+from ipaddress import AddressValueError, IPv4Address, IPv4Network, \
+    collapse_addresses, summarize_address_range
 import re
-import subprocess
-from typing import List, Optional, OrderedDict, Self
+from typing import List, Optional
 from datetime import datetime
 from asyncpg import Connection
 import loggate
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 from config import get_config
-from lib.helper import cmd, get_file_content, get_wg_private_key, get_wg_public_key
+from lib.helper import get_file_content, get_wg_private_key, get_wg_public_key
 from model.base import BaseDBModel, BasePModel
 
 INTERFACE_TABLE = get_config('DATABASE_INTERFACE_TABLE_NAME')
@@ -25,11 +25,12 @@ class InterfaceUpdate(BaseModel):
     listen_port: int
     address: Optional[str] = Field(None, max_length=256)    # Comma separated IPv4 or IPv6
     dns: Optional[str] = Field(None, max_length=256)        # Comma separated IPv4 or IPv6
-    public_endpoint: Optional[str] = Field(None, max_length=256)
+    public_endpoint: str = Field(None, max_length=256)
     ip_range: Optional[str] = Field(None, max_length=256)
     mtu: Optional[int] = Field(None)
     fw_mark: Optional[int] = Field(None)    # default is 0 = off
-    table: Optional[str] = Field(None, max_length=32)   # value off - disable routing, value auto is default
+    # value off - disable routing, value auto is default
+    table: Optional[str] = Field(None, max_length=32)
     pre_up: Optional[str] = Field(None)
     post_up: Optional[str] = Field(None)
     pre_down: Optional[str] = Field(None)
@@ -41,7 +42,7 @@ class InterfaceUpdate(BaseModel):
         if not ip_range:
             return []
         try:
-            blocks = re.split(',|\n',ip_range)
+            blocks = re.split(',|\n', ip_range)
             nets = []
             for range in blocks:
                 ips = [IPv4Address(ip.strip()) for ip in range.split('-')]
@@ -102,7 +103,7 @@ class InterfaceUpdate(BaseModel):
     def check_keys(cls, data) -> dict:
         if not data.get('private_key'):
             data['private_key'] = get_wg_private_key()
-        elif data['private_key'].startswith('/') and not data.get('public_key'):
+        elif data['private_key'].startswith('file://') and not data.get('public_key'):
             raise InterfaceError(
                 'If the private key is placed in local file %s, '
                 'the public key is required.',
@@ -124,37 +125,9 @@ class Interface(InterfaceCreate, BasePModel):
     created_at: datetime = Field(default_factory=datetime.now)
 
     def get_private_key(self):
-        if self.private_key.startswith('/'):
-            return get_file_content(self.private_key)
+        if self.private_key.startswith('file://'):
+            return get_file_content(self.private_key.replace('file://', '')).strip()
         return self.private_key
-
-    def get_config(self, full: bool = False) -> str:
-        res = OrderedDict()
-        res['PrivateKey'] = self.get_private_key()
-        res['# PublicKey'] = self.public_key
-        res['ListenPort'] = self.listen_port
-        if self.fw_mark:
-            res['FwMark'] = self.fw_mark
-        if full:
-            res['Address'] = self.address
-            if self.dns:
-                res['DNS'] = self.dns
-            if self.mtu:
-                res['MTU'] = self.mtu
-            if self.table:
-                res['Table'] = self.table
-            if self.pre_up:
-                res['PreUp'] = self.pre_up
-            if self.post_up:
-                res['PostUp'] = self.post_up
-            if self.pre_down:
-                res['PreDown'] = self.pre_down
-            if self.post_down:
-                res['PostDown'] = self.post_down
-        resL = ['[Interface]']
-        for k, v in res.items():
-            resL.append(f'{k} = {v}')
-        return resL
 
 
 class InterfaceDB(BaseDBModel):
@@ -180,7 +153,6 @@ class InterfaceDB(BaseDBModel):
             ips = list(create.ip_range_to_ips(create.ip_range))
             ips.sort()
             create.address = str(ips.pop(0))
-
 
     @classmethod
     async def get_used_ips(cls, db: Connection, interface_id: int) -> List[IPv4Address]:

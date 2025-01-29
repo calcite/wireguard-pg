@@ -38,7 +38,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 RUN python3 -m pip install --upgrade pdm
 
 USER $USERNAME
-WORKDIR /workspaces
+WORKDIR /workspace
 
 ENV DEBIAN_FRONTEND=
 ENV LANGUAGE C.UTF-8

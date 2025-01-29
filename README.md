@@ -97,7 +97,6 @@ The PostgreSQL database contains the following tables:
 
 1. **Environment variables**
     - `SERVER_NAME`: default
-    - `JWT_SECRET`: <secret>
     - `DATABASE_URI`: postgres://user:password@localhost:5432/db
     - `DATABASE_INIT`: yes
     - `DATABASE_INTERFACE_TABLE_NAME`: interface
@@ -111,7 +110,8 @@ The PostgreSQL database contains the following tables:
     - `CORS_ALLOW_HEADERS`: *     # comma separated
     - `CORS_ALLOW_CREDENTIALS`:  yes
     - `WIREGUARD_CONFIG_FOLDER`: /config
-    - `ENABLE_API`: no
+    - `API_ENABLED`: no
+    - `API_ACCESS_TOKEN`: "<secret>"
     - `LOG_LEVEL`: INFO
 
 1. **Run docker container**
@@ -119,19 +119,62 @@ The PostgreSQL database contains the following tables:
     > docker run --rm -it --name wg1 -e LOG_LEVEL=debug -v (pwd)/tmp:/config --pid=host --cap-add NET_ADMIN --cap-add SYS_MODULE --network host -e DATABASE_URI=postgresql://dbuser:test@db_server:5432/db wireguard-pg:local
     ```
 
+1. **Run docker-compose**
+    ```
+
+        services:
+            wireguard:
+                cap_add:
+                    - NET_ADMIN
+                    - SYS_MODULE
+                sysctls:
+                    - net.ipv4.conf.all.src_valid_mark=1
+                ports:
+                    - 8000:8000              # required if API_ENABLED is "yes"
+                depends_on:
+                    - db
+                volumes:
+                    - wg-config:/config
+                environment:
+                    SERVER_NAME: "main_vpn"
+                    DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
+                    API_ENABLED: yes          # optional default is "no"
+                    API_ACCESS_TOKEN: "<my-secret-token>"
+
+            db:
+                image: postgres:13
+                environment:
+                    POSTGRES_USER: dbuser
+                    POSTGRES_PASSWORD: test
+                    POSTGRES_DB: devdb
+                volumes:
+                    - db-data:/var/lib/postgresql/data
+
+            adminer:                # Optional
+                image: adminer
+                restart: always
+                ports:
+                    - 8080:8080
+
+        volumes:
+            db-data:
+            wg-config:
+
+    ```
+
 ## Example Workflow
 
 1. Add a new interface:
     ```sql
-    INSERT INTO interface (server_name, interface_name, address, private_key, public_key, listen_port)
-    VALUES ('default', 'wg0', '10.0.0.1', 'your_private_key_here', 'public_key_here', 51820);
+    INSERT INTO interface (server_name, interface_name, address, private_key, public_key, public_endpoint, listen_port)
+    VALUES ('default', 'wg0', '10.0.0.1', 'your_private_key_here', 'public_key_here', 'peer_endpoint_here:51820', 51820);
     ```
 
 1. Add a peer to the interface:
 
     ```sql
-    INSERT INTO peer (interface_id, name, public_key, allowed_ips, endpoint, address)
-    VALUES (1, 'client1', 'peer_public_key_here', '10.0.0.2/32', 'peer_endpoint_here:51820', '10.0.0.2');
+    INSERT INTO peer (interface_id, name, public_key, allowed_ips, address)
+    VALUES (1, 'client1', 'peer_public_key_here', '10.0.0.2/32', '10.0.0.2');
     ```
 
 1. The application detects changes and applies them to the WireGuard server.

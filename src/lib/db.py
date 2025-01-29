@@ -3,7 +3,6 @@ from typing import Callable
 import loggate
 import re
 from pathlib import Path
-from packaging.version import Version
 from asyncpg import connect, create_pool, Pool, Connection, UndefinedTableError
 from asyncpg.connection import LoggedQuery
 
@@ -33,7 +32,6 @@ class DBConnection:
         if not cls.singleton.pool:
             await cls.singleton.start_pool()
         return cls.singleton.pool
-
 
     @classmethod
     def register_startup(cls, fce: Callable):
@@ -78,10 +76,11 @@ class DBConnection:
             table_name = res.pop(0)
         async with self.pool.acquire() as db:
             try:
-                count = await db.fetchval('''
-                    SELECT COUNT(*)
-                    FROM information_schema.tables
-                    WHERE table_schema = $1 AND table_name = $2
+                count = await db.fetchval(
+                    '''
+                        SELECT COUNT(*)
+                        FROM information_schema.tables
+                        WHERE table_schema = $1 AND table_name = $2
                     ''',
                     table_schema,
                     table_name
@@ -109,7 +108,6 @@ class DBConnection:
                 "payload": payload,
                 "pid": pid
             }, exc_info=True)
-
 
     async def event_listener(self):
         db: Connection = None
@@ -166,7 +164,6 @@ class DBConnection:
         if self.checking_task:
             self.checking_task.cancel()
         await self.stop_pool()
-
 
     async def stop_pool(self):
         if self.pool:

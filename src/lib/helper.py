@@ -9,6 +9,7 @@ def get_yaml(filename):
     with open(filename, 'r') as fd:
         return yaml.safe_load(fd)
 
+
 def get_file_content(filename) -> str:
     if not os.path.exists(filename):
         return None
@@ -61,10 +62,12 @@ def cmd(*args, capture_output=True, ignore_error=False) -> subprocess.CompletedP
             loggate.get_logger('cmd').error(e.stderr)
     return None
 
+
 def get_wg_private_key() -> str:
     return subprocess.run(
         ('wg', 'genkey'), capture_output=True, text=True, check=True
     ).stdout.strip()
+
 
 def get_wg_public_key(private_key: str) -> str:
     return subprocess.run(
