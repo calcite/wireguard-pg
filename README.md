@@ -1,14 +1,21 @@
-# WireGuard Database Manager
+# WireGuardPG
 
-WireGuard Database Manager is a utility designed to simplify the configuration and management of a WireGuard server using a PostgreSQL database. It leverages database tables to store and manage WireGuard interface and peer configurations, providing a streamlined approach to dynamically handle VPN settings.
+WireGuardPG is a utility designed to simplify the configuration and management of a WireGuard server using a PostgreSQL database.
+It uses database tables to store and manage WireGuard interface and peer configurations, providing a streamlined approach to dynamically handling VPN settings.
+A single database can manage many WireGuard instances with many interfaces.
+The application can be integrated into your own application by adding/updating records in the database or using the REST API.
 
 ## Features
 
-- **Database-Driven Configuration:** Manage WireGuard interfaces and peers via PostgreSQL tables.
+- **Database-Driven Configuration:** Manage WireGuard interfaces and peers via records in PostgreSQL database.
 
-- **Dynamic Updates:** Apply changes without manual configuration file edits.
+- **Dynamic Updates:** Apply changes without having to manually edit files or restart wireguard service.
 
 - **Scalable Management:** Easily handle multiple interfaces and peers with a centralized database.
+
+- **Sensitive data (private keys) is not necessarily  be stored in the database.**
+  - We can store private key into file mounted into container.
+
 
 ## Database Structure
 
@@ -23,13 +30,13 @@ The PostgreSQL database contains the following tables:
     | id     | SERIAL  |   | Primary key |
     | namserver_name   | VARCHAR(64) | | Name of application instance. |
     | interface_name   | VARCHAR(64) | | Name of interface.    |
-    | private_key  | VARCHAR(256) |  | Private key or path to private key file.
-    | public_key | VARCHAR(256) | optional | Public key. |
+    | private_key  | VARCHAR(256) |  | Private key or path to private key file. (e.g. `file:///config/private.key`)
+    | public_key | VARCHAR(256) | optional; used by API | Public key. |
     | listen_port | INT | | Listen port |
     | address | VARCHAR(256) | | IP address of the interface.
-    | dns | VARCHAR(256) | optional | DNS servers.
-    | public_endpoint | VARCHAR(256) | optional | Public address with port of WireGuard instance.
-    | ip_range | VARCHAR(256) | optional | IP subnet for automatically assign to peers.
+    | dns | VARCHAR(256) | optional; used by API | DNS servers.
+    | public_endpoint | VARCHAR(256) | optional; used by API | Public address with port of WireGuard instance.
+    | ip_range | VARCHAR(256) | optional; used by API | IP subnet for automatically assign to peers.
     | mtu | INT |  optional |
     | fw_mark | INT | optional |
     | table | VARCHAR(32) | optional | routing table
@@ -70,28 +77,7 @@ The PostgreSQL database contains the following tables:
 
 
 
-## Usage
-
-1. **Start the Application:**
-
-   ```shell
-    python -m uvicorn app:app
-    ```
-
-1. **Add Interfaces and Peers:**
-
-    - Use your preferred PostgreSQL client to insert records into the interface and peer tables.
-
-1. **Apply Changes to WireGuard:**
-
-    - The application reads the database changes and updates WireGuard configurations accordingly.
-
 ## Docker
-
-1. **Build docker container**
-    ```shell
-    docker build -t wireguard-pg:local .
-    ```
 
 1. **Environment variables**
     - `SERVER_NAME`: default
@@ -112,55 +98,57 @@ The PostgreSQL database contains the following tables:
     - `API_ACCESS_TOKEN`: "<secret>"
     - `LOG_LEVEL`: INFO
 
-1. **Run docker container**
-    ```shell
-    > docker run --rm -it --name wg1 -e LOG_LEVEL=debug -v (pwd)/tmp:/config --pid=host --cap-add NET_ADMIN --cap-add SYS_MODULE --network host -e DATABASE_URI=postgresql://dbuser:test@db_server:5432/db wireguard-pg:local
+1. **Docker-compose**
+    ```yaml
+    services:
+        wireguard:
+            image: ghcr.io/calcite/wireguard_pg:latest
+            cap_add:
+                - NET_ADMIN
+                - SYS_MODULE
+            sysctls:
+                - net.ipv4.conf.all.src_valid_mark=1
+            # Uncomment these lines if you want to use API
+            #ports:
+            #    - 8000:8000
+            depends_on:
+                - db
+            volumes:
+                - wg-config:/config
+            environment:
+                SERVER_NAME: "main_vpn"
+                DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
+                # Uncomment these lines if you want to use API
+                # API_ENABLED: yes
+                # API_ACCESS_TOKEN: "<my-secret-token>"
+
+        db:
+            image: postgres:13
+            environment:
+                POSTGRES_USER: dbuser
+                POSTGRES_PASSWORD: test
+                POSTGRES_DB: devdb
+            volumes:
+                - db-data:/var/lib/postgresql/data
+
+        # This container is optional
+        adminer:
+            image: adminer
+            restart: always
+            ports:
+                - 8080:8080
+            depends_on:
+                - db
+            enviroment:
+                ADMINER_DEFAULT_SERVER=pgsql
+
+    volumes:
+        db-data:
+        wg-config:
+
     ```
 
-1. **Run docker-compose**
-    ```
-
-        services:
-            wireguard:
-                cap_add:
-                    - NET_ADMIN
-                    - SYS_MODULE
-                sysctls:
-                    - net.ipv4.conf.all.src_valid_mark=1
-                ports:
-                    - 8000:8000              # required if API_ENABLED is "yes"
-                depends_on:
-                    - db
-                volumes:
-                    - wg-config:/config
-                environment:
-                    SERVER_NAME: "main_vpn"
-                    DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
-                    API_ENABLED: yes          # optional default is "no"
-                    API_ACCESS_TOKEN: "<my-secret-token>"
-
-            db:
-                image: postgres:13
-                environment:
-                    POSTGRES_USER: dbuser
-                    POSTGRES_PASSWORD: test
-                    POSTGRES_DB: devdb
-                volumes:
-                    - db-data:/var/lib/postgresql/data
-
-            adminer:                # Optional
-                image: adminer
-                restart: always
-                ports:
-                    - 8080:8080
-
-        volumes:
-            db-data:
-            wg-config:
-
-    ```
-
-## Example Workflow
+## Example Workflow without API
 
 1. Add a new interface:
     ```sql
@@ -176,6 +164,77 @@ The PostgreSQL database contains the following tables:
     ```
 
 1. The application detects changes and applies them to the WireGuard server.
+
+
+## Example Workflow with API
+1. Uncomment port definition and environment variables in docker-compose.yml. Set you secure API token by `API_ACCESS_TOKEN`.
+
+1. Start / restart deployment
+    ```shell
+    docker-compose up -d
+    ```
+1. Documentation is available on http://localhost:8000/docs or http://localhost:8000/redoc
+
+1. Create a new interface. The private key is store in file. We set `ip_range` for this subnet.
+    ```shell
+    export API_ACCESS_TOKEN="my-super-secret-token"
+
+    > curl -X POST "http://localhost:8000/api/interface/" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: $API_ACCESS_TOKEN" \
+        -d '{"server_name": "default", "interface_name": "wg1", "private_key": "file:///config/privkey_wg1", "public_key": "MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=", "listen_port": 5123, "public_endpoint": "public_ip_of_this_host:5123", "ip_range": "10.10.11.1 - 10.10.11.255"}'
+    ```
+1. Check our new interface
+    ```shell
+    > curl "http://localhost:8000/api/interface/" \
+        -H "Authorization: $API_ACCESS_TOKEN" | jq
+    {
+        "id": 1,
+        "server_name": "default",
+        "interface_name": "wg1",
+        "private_key": "file:///config/privkey_wg1",
+        "public_key": "MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=",
+        "listen_port": 5123,
+        "address": "10.10.11.1",
+        "dns": null,
+        "public_endpoint": "public_ip_of_this_host:5123",
+        "ip_range": "10.10.11.1 - 10.10.11.255",
+        "mtu": null,
+        "fw_mark": null,
+        "table": null,
+        "pre_up": null,
+        "post_up": null,
+        "pre_down": null,
+        "post_down": null,
+        "enabled": true,
+        "updated_at": "2025-01-29T13:32:32.999401Z",
+        "created_at": "2025-01-27T19:58:32.531101Z"
+    }
+    ```
+1. Create a new peer. Keys are generated automatically, but private key is not stored.
+    ```shell
+    > curl -X POST "http://localhost:8000/api/peer/" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: $API_ACCESS_TOKEN" \
+        -d '{"interface_id": 1, "name": "client1"}' | jq
+
+    {
+        "interface_id": 1,
+        "name": "client1",
+        "description": null,
+        "public_key": "KW1jkHQrXY6PIK1+IlOEUiUwb3AEh1BzulZNC+MdrUc=",
+        "preshared_key": null,
+        "persistent_keepalive": null,
+        "allowed_ips": "0.0.0.0/0",
+        "address": "10.10.11.2",
+        "enabled": true,
+        "id": 1,
+        "private_key": "GFaQ+GMqrNY/O+yPeSIH+MNMXAcdbg+c04blv5NOxGk=",
+        "client_config": "[Interface]/nPrivateKey = GFaQ+GMqrNY/O+yPeSIH+MNMXAcdbg+c04blv5NOxGk=/n# PublicKey = KW1jkHQrXY6PIK1+IlOEUiUwb3AEh1BzulZNC+MdrUc=/nAddress = 10.10.11.2/n/n[Peer]/nPublicKey = MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=/nEndpoint = public_ip_of_this_host:5123/nAllowedIPs = 0.0.0.0/0",
+        "updated_at": "2025-01-29T18:47:35.942545Z",
+        "created_at": "2025-01-29T18:47:35.942545Z"
+    }
+    ```
 
 ## Contribution
 
