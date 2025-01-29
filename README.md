@@ -29,7 +29,7 @@ The PostgreSQL database contains the following tables:
     | address | VARCHAR(256) | | IP address of the interface.
     | dns | VARCHAR(256) | optional | DNS servers.
     | public_endpoint | VARCHAR(256) | optional | Public address with port of WireGuard instance.
-    | subnet | VARCHAR(256) | optional | IP subnet for automatically assign to peers.
+    | ip_range | VARCHAR(256) | optional | IP subnet for automatically assign to peers.
     | mtu | INT |  optional |
     | fw_mark | INT | optional |
     | table | VARCHAR(32) | optional | routing table
@@ -51,12 +51,10 @@ The PostgreSQL database contains the following tables:
     | interface_id  | INT | | reference to interface
     | name |  VARCHAR(64) | | Name of the peer/user.
     | description |  VARCHAR(256) | optional | Description
-    | private_key | VARCHAR(256) | optional | Private key.
-    | public_key | VARCHAR(256) | | Public key. |
+    | public_key | VARCHAR(256) | optional | Public key.
     | preshared_key | VARCHAR(256) | optional | Preshared key. |
     | persistent_keepalive | INT | optional | in seconds
-    | allowed_ips | VARCHAR(256) | |
-    | endpoint | VARCHAR(256) | optional | Server endpoint
+    | allowed_ips | VARCHAR(256) |  |
     | address | VARCHAR(256) | | IP address of the peer.
     | updated_at | TIMESTAMP | NOW() | Automatically set by update
     | created_at | TIMESTAMP | NOW() | Automatically set by create
