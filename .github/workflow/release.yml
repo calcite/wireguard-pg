@@ -1,0 +1,28 @@
+name: Docker Build and Push
+
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u USERNAME --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build -t ghcr.io/calcite/wireguard_pg:latest -t ghcr.io/calcite/wireguard_pg:${{ env.VERSION }} .
+
+      - name: Push Docker image to GHCR
+        run: |
+          docker push ghcr.io/calcite/wireguard_pg:latest
+          docker push ghcr.io/calcite/wireguard_pg:${{ env.VERSION }}
