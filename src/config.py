@@ -9,6 +9,7 @@ DEFAULT_CONFIG = {
     'SERVER_NAME': 'default',
     'DATABASE_URI': 'postgres://user:password@localhost:5432/db',
     'DATABASE_INIT': 'yes',
+    'DATABASE_SCHEMA': 'public',
     'DATABASE_INTERFACE_TABLE_NAME': 'interface',
     'DATABASE_PEER_TABLE_NAME': 'peer',
     'POSTGRES_POOL_MIN_SIZE': 5,

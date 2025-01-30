@@ -81,7 +81,7 @@ The PostgreSQL database contains the following tables:
 
 1. **Environment variables**
     - `SERVER_NAME`: default
-    - `DATABASE_URI`: postgres://user:password@localhost:5432/db
+    - `DATABASE_URI`: postgres://user:password@localhost:5432/db?options=-c%20search_path=public
     - `DATABASE_INIT`: yes
     - `DATABASE_INTERFACE_TABLE_NAME`: interface
     - `DATABASE_PEER_TABLE_NAME`: peer

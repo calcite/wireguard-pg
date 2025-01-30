@@ -67,23 +67,21 @@ class DBConnection:
         DBConnection.singleton = self
 
     async def update_db_schema(self):
-        res = INTERFACE_TABLE.split('.')
-        table_schema = 'public'
-        table_name = res.pop(0)
-        if res:
-            # table name contains schema as well
-            table_schema = table_name
-            table_name = res.pop(0)
+
         async with self.pool.acquire() as db:
             try:
+                schema = 'public'
+                if match := re.search('search_path=([^&\?]*)(&?|$)',
+                                      DATABASE_URI, re.I):
+                    schema = match.group(1)
                 count = await db.fetchval(
                     '''
                         SELECT COUNT(*)
                         FROM information_schema.tables
                         WHERE table_schema = $1 AND table_name = $2
                     ''',
-                    table_schema,
-                    table_name
+                    schema,
+                    INTERFACE_TABLE
                 )
             except UndefinedTableError:
                 count = 0
