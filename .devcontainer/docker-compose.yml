@@ -1,13 +1,16 @@
 services:
   app:
     build:
-      context: .
+      context: ./
       dockerfile: Dockerfile
+    # image: wireguard-pg:devcontainer
     volumes:
-      - ../:/workspace
+      - ..:/workspace:cached
       - /var/run/docker.sock:/var/run/docker.sock
-    command: sleep infinity
-    user: vscode
+    command: /bin/zsh -c "while sleep 1000; do :; done"
+    network_mode: bridge
+    user: dev
+
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -17,8 +20,10 @@ services:
       - 9080:9080
     depends_on:
       - db
-    environment:
-      DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
+    # security_opt:
+    #   - seccomp:unconfined
+    # environment:
+    #   DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
 
   db:
     image: postgres:13
