@@ -10,7 +10,7 @@ from config import get_config
 from lib.helper import get_file_content, get_wg_private_key, get_wg_public_key
 from model.base import BaseDBModel, BasePModel
 
-INTERFACE_TABLE = get_config('DATABASE_INTERFACE_TABLE_NAME')
+
 
 logger = loggate.getLogger('Interface')
 
@@ -19,14 +19,12 @@ class InterfaceError(Exception): pass    # noqa
 
 class InterfaceUpdate(BaseModel):
     server_name: str = Field(max_length=64)
-    interface_name: str = Field(max_length=64)
-    private_key: Optional[str] = Field(None, max_length=256)
-    public_key: Optional[str] = Field(max_length=256)
+    interface_name: str = Field(max_length=15)
+    private_key: str = Field(None, max_length=256)
+    public_key: Optional[str] = Field(None, max_length=256)
     listen_port: int
-    address: Optional[str] = Field(None, max_length=256)    # Comma separated IPv4 or IPv6
+    address: str = Field(max_length=256)    # Comma separated IPv4 or IPv6
     dns: Optional[str] = Field(None, max_length=256)        # Comma separated IPv4 or IPv6
-    public_endpoint: str = Field(None, max_length=256)
-    ip_range: Optional[str] = Field(None, max_length=256)
     mtu: Optional[int] = Field(None)
     fw_mark: Optional[int] = Field(None)    # default is 0 = off
     # value off - disable routing, value auto is default
@@ -120,7 +118,8 @@ class InterfaceCreate(InterfaceUpdate):
     pass
 
 
-class Interface(InterfaceCreate, BasePModel):
+class Interface(InterfaceCreate):
+    id: int
     updated_at: datetime = Field(default_factory=datetime.now)
     created_at: datetime = Field(default_factory=datetime.now)
 
@@ -132,7 +131,7 @@ class Interface(InterfaceCreate, BasePModel):
 
 class InterfaceDB(BaseDBModel):
     class Meta:
-        db_table = INTERFACE_TABLE
+        db_table = 'server_interface'
         PYDANTIC_CLASS = Interface
         DEFAULT_SORT_BY: str = 'id'
 

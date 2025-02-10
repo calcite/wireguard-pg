@@ -1,9 +1,14 @@
+import hashlib
 import os
 import re
 import subprocess
 import loggate
 import yaml
 
+
+
+def checksum(content: str) -> str:
+    return str(hashlib.md5(content.encode()).hexdigest()) if content else None
 
 def get_yaml(filename):
     with open(filename, 'r') as fd:
@@ -16,6 +21,18 @@ def get_file_content(filename) -> str:
     with open(filename, 'r') as fd:
         return fd.read()
 
+def write_file(file_name: str, content: str, mode: int = 0o777):
+        desc = os.open(
+            path=file_name,
+            flags=(
+                os.O_WRONLY |
+                os.O_CREAT |
+                os.O_TRUNC
+            ),
+            mode=0o700
+        )
+        with open(desc, 'w') as fd:
+            fd.write(content)
 
 def dict_bytes2str(dd):
     res = {}
@@ -53,13 +70,17 @@ def dicts_val(path: str, data, **kwargs):
 
 
 def cmd(*args, capture_output=True, ignore_error=False) -> subprocess.CompletedProcess:
+    if os.getuid() != 0:
+        args = ('sudo', *args)
     try:
         return subprocess.run(
             args, text=True, check=True, capture_output=capture_output
         )
     except subprocess.CalledProcessError as e:
         if not ignore_error:
-            loggate.get_logger('cmd').error(e.stderr)
+            loggate.get_logger('cmd').error(
+                e.stderr, meta={"cmd": ' '.join(args)}
+            )
     return None
 
 

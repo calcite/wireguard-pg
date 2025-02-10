@@ -12,7 +12,8 @@ class ConfigFormatter:
                                  full: bool = False) -> List[str]:
         res = OrderedDict()
         res['PrivateKey'] = interface.get_private_key()
-        res['# PublicKey'] = interface.public_key
+        if full:
+            res['# PublicKey'] = interface.public_key
         res['ListenPort'] = interface.listen_port
         if interface.fw_mark:
             res['FwMark'] = interface.fw_mark
@@ -38,14 +39,18 @@ class ConfigFormatter:
 
         for peer in peers:
             resL.append('')
-            resL.append(f'[Peer]  # Name: {peer.name} ({peer.address})')
+            if full:
+                resL.append(f'[Peer]  # Name: {peer.name} ({peer.address})')
+            else:
+                resL.append('[Peer]')
             resL.append(f'PublicKey = {peer.public_key}')
             if peer.preshared_key:
                 resL.append(f'PresharedKey = {peer.preshared_key}')
             resL.append(f'AllowedIPs = {peer.address}/32')
             if peer.persistent_keepalive:
                 resL.append(f'PersistentKeepalive = {peer.persistent_keepalive}')
-        resL.append('')
+        if full:
+            resL.append('')
         return resL
 
     @classmethod

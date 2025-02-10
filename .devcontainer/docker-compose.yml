@@ -6,24 +6,25 @@ services:
     # image: wireguard-pg:devcontainer
     volumes:
       - ..:/workspace:cached
-      - /var/run/docker.sock:/var/run/docker.sock
+      # - /var/run/docker.sock:/var/run/docker.sock
     command: /bin/zsh -c "while sleep 1000; do :; done"
-    network_mode: bridge
+    # network_mode: bridge
+    networks:
+      - default
     user: dev
-
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
+    # sysctls:
+    #   - net.ipv4.conf.all.src_valid_mark=1
     ports:
       - 9080:9080
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
+    env_file:
+      - .env
     # security_opt:
     #   - seccomp:unconfined
-    # environment:
-    #   DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
 
   db:
     image: postgres:13
@@ -33,6 +34,8 @@ services:
       POSTGRES_USER: dbuser
       POSTGRES_PASSWORD: test
       POSTGRES_DB: devdb
+    networks:
+      - default
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
@@ -41,8 +44,16 @@ services:
   adminer:
     image: adminer
     restart: always
+    networks:
+      - default
     ports:
       - 9085:8080
 
 volumes:
   db-data:
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      'com.docker.network.bridge.name': "wireguarddb"

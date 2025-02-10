@@ -6,8 +6,6 @@ from config import get_config
 from model.base import BaseDBModel
 from model.interface import InterfaceDB
 
-PEER_TABLE = get_config('DATABASE_PEER_TABLE_NAME')
-
 
 class PeerUpdate(BaseModel):
     interface_id: int
@@ -16,21 +14,13 @@ class PeerUpdate(BaseModel):
     public_key: str = Field(max_length=256)
     preshared_key: Optional[str] = Field(None, max_length=256)
     persistent_keepalive: Optional[int] = Field(None)
-    allowed_ips: str = Field('0.0.0.0/0', max_length=512)    # Comma separated IPv4 or IPv6
-    address: Optional[str] = Field(None, max_length=256)    # Comma separated IPv4 or IPv6
+    allowed_ips: Optional[str] = Field(None, max_length=512)    # Comma separated IPv4 or IPv6
+    address: str = Field( max_length=256)    # Comma separated IPv4 or IPv6
     enabled: bool = Field(True)
 
 
-class PeerCreate(BaseModel):
-    interface_id: int
-    name: str = Field(max_length=64)
-    description: Optional[str] = Field(None, max_length=256)
-    public_key: Optional[str] = Field(None, max_length=256)
-    preshared_key: Optional[str] = Field(None, max_length=256)
-    persistent_keepalive: Optional[int] = Field(None)
-    allowed_ips: str = Field('0.0.0.0/0', max_length=512)    # Comma separated IPv4 or IPv6
-    address: Optional[str] = Field(None, max_length=256)    # Comma separated IPv4 or IPv6
-    enabled: bool = Field(True)
+class PeerCreate(PeerUpdate):
+    pass
 
 
 class PeerCreated(PeerUpdate):
@@ -49,7 +39,7 @@ class Peer(PeerUpdate):
 
 class PeerDB(BaseDBModel):
     class Meta:
-        db_table = PEER_TABLE
+        db_table = 'client_peer'
         PYDANTIC_CLASS = Peer
         DEFAULT_SORT_BY: str = 'id'
 
