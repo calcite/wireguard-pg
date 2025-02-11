@@ -1,0 +1,40 @@
+[Interface]
+PrivateKey = {{ interface.get_private_key() }}
+{% if interface.public_key -%}
+# PublicKey = {{ interface.public_key }}
+{% endif -%}
+ListenPort = {{ interface.listen_port }}
+Address = {{ interface.address }}
+{% if interface.fw_mark -%}
+FwMark = {{ interface.fw_mark }}
+{% endif -%}
+{% if interface.mtu -%}
+MTU = {{ interface.mtu }}
+{% endif -%}
+{% if interface.table -%}
+Table = {{ interface.table }}
+{% endif -%}
+{% if interface.pre_up -%}
+PreUp = {{ interface.pre_up }}
+{% endif -%}
+{% if interface.post_up -%}
+PostUp = {{ interface.post_up }}
+{% endif -%}
+{% if interface.pre_down -%}
+PreDown = {{ interface.pre_down }}
+{% endif -%}
+{% if interface.prost_down -%}
+PostDown = {{ interface.post_down }}
+{% endif -%}
+
+{% for peer in peers %}
+[Peer]  # {{ peer.name }} ({{ peer.address }})
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips or peer.address+'/32' }}
+{% if peer.preshared_key -%}
+PresharedKey = {{ peer.preshared_key }}
+{% endif -%}
+{% if peer.persistent_keepalive -%}
+PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endif -%}
+{% endfor %}

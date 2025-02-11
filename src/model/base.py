@@ -1,8 +1,11 @@
+import json
 import asyncpg
 from fastapi import HTTPException, status, Depends, Query
 from typing import TypeVar, Optional, List
 from pydantic import BaseModel
 from asyncpg import Connection
+
+from lib.db import DBConnection
 
 
 class ObjectNotFound(HTTPException):
@@ -52,6 +55,22 @@ class BaseDBModel:
         DEFAULT_SORT_BY: str = 'id'
         reload_after_create: bool = False
 
+    def __init_subclass__(cls, **kwargs):
+        if handler := getattr(cls.Meta, 'onchange_handler', None):
+            if not callable(handler):
+                handler = getattr(cls, handler)
+            DBConnection.register_notification(cls.Meta.db_table, handler)
+        if handler := getattr(cls.Meta, 'onstart_handler', None):
+            if not callable(handler):
+                handler = getattr(cls, handler)
+            DBConnection.register_startup(handler)
+
+    @staticmethod
+    def get_object(cls, row):
+        # for key, val in row.items():
+        #     if cls.model_fields[key]
+        return cls(**row)
+
     @classmethod
     async def get(cls, db: Connection, query: str | int | G, *args, **kwargs
                   ) -> Optional[G]:
@@ -68,10 +87,10 @@ class BaseDBModel:
             query = 'f."id"=$1'
 
         if row := await db.fetchrow(
-                f'SELECT f.* {_sub_columns} FROM "{_db_table}" f {_sub_sql} WHERE {query}',
-                *args
+            f'SELECT f.* {_sub_columns} FROM "{_db_table}" f {_sub_sql} WHERE {query}',
+            *args
         ):
-            return _pydantic_class(**row)
+            return cls.get_object(_pydantic_class, row)
         elif not _raise:
             return None
         else:
@@ -102,16 +121,21 @@ class BaseDBModel:
             f'WHERE {query} {sort_by}{_post_sql};',
             *args
         )
-        return [_pydantic_class(**row) for row in rows]
+        return [cls.get_object(_pydantic_class, row) for row in rows]
+
+    @classmethod
+    def json_encoder(obj):
+        return obj
 
     @classmethod
     async def update(cls, db: Connection, obj: str | int | G, update: U, *args, **kwargs) -> G:
         _cls = kwargs.pop('_cls', cls)
         obj = await _cls.get(db, obj, *args, _raise=True)
-        if hasattr(_cls, 'pre_update'):
-            await _cls.pre_update(db, obj, update, **kwargs)
+        org_update = update
+        if hasattr(_cls, 'pre_update') and (pre := await _cls.pre_update(db, obj, update, **kwargs)):
+            update = pre
         columns, values = ([], [])
-        fields = update.__class__.__fields__
+        fields = update.__class__.model_fields
         fields.update(update.__class__.model_computed_fields)
         for key, meta in fields.items():
             val = getattr(update, key)
@@ -119,7 +143,10 @@ class BaseDBModel:
             if not ext.get('no_save', False) and getattr(obj, key, None) != val:
                 ix = len(values) + 1
                 columns.append(f'"{key}" = ${ix}')
-                values.append(val)
+                if isinstance(val, dict) or isinstance(val, list):
+                    values.append(json.dumps(val, default=_cls.json_encoder))
+                else:
+                    values.append(val)
                 setattr(obj, key, val)
         if not values:
             return obj
@@ -130,29 +157,35 @@ class BaseDBModel:
             )
         except asyncpg.exceptions.IntegrityConstraintViolationError as e:
             raise ConstrainError(str(e))
-        if hasattr(_cls, 'post_update'):
-            await _cls.post_update(db, obj, **kwargs)
+        if hasattr(_cls, 'post_update') and (post := await _cls.post_update(db, obj, org_update, **kwargs)):
+            obj = post
         return obj
 
     @classmethod
     async def create(cls, db: Connection, create: C, **kwargs) -> G:
         _cls = kwargs.pop('_cls', cls)
-        _reload_after_create = kwargs.pop('_reload_after_create', getattr(_cls.Meta, 'reload_after_create', False))
-        if hasattr(_cls, 'pre_create'):
-            await _cls.pre_create(db, create, **kwargs)
+        _reload_after_create = kwargs.pop('_reload_after_create',
+                                          getattr(_cls.Meta, 'reload_after_create', False))
+        org_create = create
+        if hasattr(_cls, 'pre_create') and (pre := await _cls.pre_create(db, create, **kwargs)):
+            create = pre
         columns, values, indexes = ([], [], [])
-        fields = create.__class__.__fields__
+        fields = create.__class__.model_fields
         fields.update(create.__class__.model_computed_fields)
         for key, meta in fields.items():
             val = getattr(create, key)
             ext = getattr(meta, 'json_schema_extra', None) or {}
             if not ext.get('no_save', False):
                 columns.append(f'"{key}"')
-                values.append(val)
+                if isinstance(val, dict) or isinstance(val, list):
+                    values.append(json.dumps(val, default=_cls.json_encoder))
+                else:
+                    values.append(val)
                 indexes.append(f'${len(values)}')
         try:
             row = await db.fetchrow(
-                f'INSERT INTO "{_cls.Meta.db_table}"  ({",".join(columns)}) VALUES ({",".join(indexes)}) RETURNING *;',
+                f'INSERT INTO "{_cls.Meta.db_table}"  ({",".join(columns)}) '
+                f'VALUES ({",".join(indexes)}) RETURNING *;',
                 *values
             )
             data = dict(**row)
@@ -164,8 +197,8 @@ class BaseDBModel:
             obj = _cls.Meta.PYDANTIC_CLASS(**data)
         else:
             obj = await _cls.get(db, data['id'])
-        if hasattr(_cls, 'post_create'):
-            await _cls.post_create(db, obj, create, **kwargs)
+        if hasattr(_cls, 'post_create') and (post := await _cls.post_create(db, obj, org_create, **kwargs)):
+            obj = post
         return obj
 
     @classmethod
@@ -183,3 +216,28 @@ class BaseDBModel:
                 f'Object {_cls.__name__} not found: {obj}')
         if hasattr(_cls, 'post_delete'):
             await _cls.post_delete(db, obj, **kwargs)
+
+    @classmethod
+    def convert_object(cls, obj, toClass, **kwargs) -> BaseModel:
+        params = kwargs
+        for k, m in toClass.model_fields.items():
+            params[k] = getattr(obj, k, m.default)
+        return toClass(**params)
+
+    @classmethod
+    async def create_or_update(cls, db: Connection, create: C, keys: List[str],
+                               update: U, **kwargs):
+        _cls = kwargs.get('_cls', cls)
+        q = list()
+        vals = list()
+        for ix, key in enumerate(keys):
+            q.append(f'"{key}" = ${ix+1}')
+            vals.append(getattr(create, key, None))
+        if obj := await cls.get(db, ' AND '.join(q), *vals):
+            # Update
+            # print(update, issubclass(update, object))
+            if issubclass(update, object):
+                # U is class
+                update = cls.convert_object(create, update)
+            return await _cls.update(db, obj, update, **kwargs)
+        return await _cls.create(db, create, **kwargs)

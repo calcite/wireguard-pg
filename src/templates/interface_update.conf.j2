@@ -1,0 +1,18 @@
+[Interface]
+PrivateKey = {{ interface.get_private_key() }}
+ListenPort = {{ interface.listen_port }}
+{% if interface.fw_mark -%}
+FwMark = {{ interface.fw_mark }}
+{% endif -%}
+
+{% for peer in peers %}
+[Peer]
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips or peer.address+'/32' }}
+{% if peer.preshared_key -%}
+PresharedKey = {{ peer.preshared_key }}
+{% endif -%}
+{% if peer.persistent_keepalive -%}
+PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endif -%}
+{% endfor %}

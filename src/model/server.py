@@ -1,23 +1,26 @@
 import json
 import os
-import hashlib
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import List
 from asyncpg import Connection
+import jinja2
 from loggate import getLogger
 
 from config import get_config
 from lib.db import DBConnection, db_logger
 from lib.helper import checksum, cmd, get_file_content, write_file
-from model.formatter import ConfigFormatter
-from model.interface import Interface, InterfaceDB
-from model.peer import Peer, PeerDB
+from model.interface import InterfaceSimple, InterfaceSimpleDB
+from model.peer import PeerDB
 
 
 WIREGUARD_CONFIG_FOLDER = get_config('WIREGUARD_CONFIG_FOLDER', wrapper=Path)
 
 logger = getLogger('wgserver')
+
+environment = jinja2.Environment(loader=jinja2.FileSystemLoader("templates/"))
+# environment.filters['b64encode'] = base64.b64encode
+
 
 
 class WGServer:
@@ -73,8 +76,8 @@ class WGServer:
             force_update = set()
 
             async with db_conn.pool.acquire() as db, db_logger('server', db):
-                ifaces = await InterfaceDB.gets(
-                    db, 'server_name=$1 AND enabled=true', self.server_name
+                ifaces = await InterfaceSimpleDB.gets(
+                    db, 'server_name=$1 AND enabled=true', self.server_name, _pydantic_class=InterfaceSimple
                 )
                 for iface in ifaces:
                     # Create / update configuration files
@@ -83,7 +86,10 @@ class WGServer:
                         db, 'interface_id=$1 AND enabled=true', iface.id
                     )
                     conf_file = self.get_config_from_iface(iface.interface_name)
-                    content = os.linesep.join(ConfigFormatter.get_server_configuration(iface, peers, True))
+                    content = environment.get_template('interface_full.conf.j2').render(
+                        interface=iface,
+                        peers=peers
+                    )
                     if checksum(content) != conf_files.get(conf_file):
                         logger.debug('Update config for %s', iface.interface_name)
                         write_file(conf_file, content, 0o700)
@@ -119,14 +125,17 @@ class WGServer:
 
         if new_server_name and new_server_name == self.server_name and new_enabled:
             # Update or Add
-            iface = Interface(**new_row)
+            iface = InterfaceSimple(**new_row)
             old_interface_name = old_row.get('interface_name')
             if old_interface_name and iface.interface_name != old_interface_name:
                 # Rename interface
                 self.__remove_interface(old_interface_name)
             peers = await PeerDB.gets(db, 'interface_id=$1 AND enabled=true', iface.id)
             conf_file = self.get_config_from_iface(iface.interface_name)
-            content = os.linesep.join(ConfigFormatter.get_server_configuration(iface, peers, True))
+            content = environment.get_template('interface_full.conf.j2').render(
+                interface=iface,
+                peers=peers
+            )
             if checksum(content) != checksum(get_file_content(conf_file)):
                 logger.debug('Update config for %s', iface.interface_name)
                 write_file(conf_file, content, 0o700)
@@ -141,7 +150,7 @@ class WGServer:
             self.__remove_interface(old_row.get('interface_name'))
 
     async def __update_peer(self, db:Connection, iface_id):
-        iface = await InterfaceDB.get(
+        iface = await InterfaceSimpleDB.get(
             db,
             'id = $1 AND server_name = $2 AND enabled=true ',
             iface_id, self.server_name
@@ -152,8 +161,11 @@ class WGServer:
             db, 'interface_id=$1 AND enabled=true', iface.id
         )
         logger.info('Update config for %s', iface.interface_name)
-        content = os.linesep.join(ConfigFormatter.get_server_configuration(iface, peers, False))
-        with NamedTemporaryFile('w', delete=False) as tmp_fd:
+        content = environment.get_template('interface_update.conf.j2').render(
+            interface=iface,
+            peers=peers
+        )
+        with NamedTemporaryFile('w') as tmp_fd:
             tmp_fd.write(content)
             tmp_fd.flush()
             res = cmd('wg', 'syncconf', iface.interface_name, tmp_fd.name)
@@ -162,7 +174,10 @@ class WGServer:
                     'Problem updating interface %s.', iface.interface_name
                 )
         conf_file = self.get_config_from_iface(iface.interface_name)
-        content = os.linesep.join(ConfigFormatter.get_server_configuration(iface, peers, True))
+        content = environment.get_template('interface_full.conf.j2').render(
+            interface=iface,
+            peers=peers
+        )
         if checksum(content) != checksum(get_file_content(conf_file)):
             write_file(conf_file, content, 0o700)
         if not self.is_interface_exist(iface.interface_name):

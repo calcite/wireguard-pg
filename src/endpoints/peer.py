@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, Security, status
 
 from endpoints import check_token
 from lib.helper import get_wg_private_key, get_wg_public_key
-from model.formatter import ConfigFormatter
 from model.interface import InterfaceDB
 from model.peer import PeerCreated, PeerDB, Peer, PeerUpdate, PeerCreate
 from lib.db import db_pool, db_logger
@@ -58,5 +57,5 @@ async def create(create: PeerCreate,
         peer: Peer = await PeerDB.create(db, create)
         interface = await InterfaceDB.get(db, create.interface_id)
         peer = PeerCreated(**peer.model_dump(exclude_unset=True), private_key=private_key)
-        peer.client_config = ConfigFormatter.get_client_configuration(peer, interface)
+        # peer.client_config = ConfigFormatter.get_client_configuration(peer, interface)
         return peer
