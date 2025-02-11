@@ -10,17 +10,30 @@
     ],
     "configurations": [
       {
-        "name": "Run Backend",
+        "name": "Run with api",
         "type": "debugpy",
         "request": "launch",
         "module": "uvicorn",
-        "args" : [ "app:app", "--port", "9080", "--reload", "--no-access-log", "--host", "0.0.0.0", "--log-level", "debug"],
+        "args" : [ "app_api:app", "--port", "9080", "--reload", "--no-access-log", "--host", "0.0.0.0", "--log-level", "debug"],
         "cwd": "${workspaceFolder}/src/",
         "console": "internalConsole",
         "env": {
           "DATABASE_URI": "postgresql://dbuser:test@db:5432/devdb",
-          "ENABLE_API": "no",
+          "API_ENABLED": "yes",
           "REQUIRED_API_TOKEN": "no",
+          "WIREGUARD_CONFIG_FOLDER": "/workspace/tmp",
+          "LOG_LEVEL": "DEBUG"
+        }
+      },
+      {
+        "name": "Run without api",
+        "type": "debugpy",
+        "request": "launch",
+        "program" : "app_noapi.py",
+        "cwd": "${workspaceFolder}/src/",
+        "console": "internalConsole",
+        "env": {
+          "DATABASE_URI": "postgresql://dbuser:test@db:5432/devdb",
           "WIREGUARD_CONFIG_FOLDER": "/workspace/tmp",
           "LOG_LEVEL": "DEBUG"
         }

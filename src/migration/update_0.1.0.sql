@@ -4,7 +4,6 @@ CREATE TABLE "server_interface" (
   "server_name" character varying(64) NOT NULL,
   "interface_name" character varying(15) NOT NULL,
   "private_key" character varying(256) NOT NULL,
-  "public_key" character varying(256) NULL,
   "listen_port" integer NOT NULL,
   "address" character varying(256) NOT NULL,
   "dns" character varying(256) NULL,
@@ -94,6 +93,7 @@ EXECUTE FUNCTION notify_data_change();
 
 CREATE TABLE "server_template" (
   "interface_id" integer NOT NULL,
+  "public_key" character varying(255) NOT NULL,
   "public_endpoint" character varying(128) NOT NULL,
   "ip_range" character varying(255) NULL,
   "client_dns" character varying(128) NULL,

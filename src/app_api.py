@@ -42,12 +42,13 @@ app.add_middleware(
 )
 
 if get_config('API_ENABLED', wrapper=to_bool):
+    logger.info('API is enabled.')
     if not get_config('API_ACCESS_TOKEN'):
         logger.warning('You have not setup API_ACCESS_TOKEN. Whole API is '
                        'accessible for everyone. This is only for debug.')
     from endpoints.interface import router as interface_router        # noqa
+    from endpoints.peer import router as peer_router                  # noqa
     app.include_router(interface_router, prefix="/api/interface")
-    from endpoints.peer import router as peer_router        # noqa
     app.include_router(peer_router, prefix="/api/peer")
 
 
