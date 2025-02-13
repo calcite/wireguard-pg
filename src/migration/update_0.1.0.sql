@@ -5,11 +5,11 @@ CREATE TABLE "server_interface" (
   "interface_name" character varying(15) NOT NULL,
   "private_key" character varying(256) NOT NULL,
   "listen_port" integer NOT NULL,
-  "address" character varying(256) NOT NULL,
+  "address" text NOT NULL,
   "dns" character varying(256) NULL,
   "mtu" integer NULL,
   "fw_mark" integer NULL,
-  "table" character varying(32) NULL,
+  "table" integer NULL,
   "pre_up" text NULL,
   "post_up" text NULL,
   "pre_down" text NULL,
@@ -34,8 +34,7 @@ CREATE TABLE "client_peer" (
   "description" character varying(256) NULL,
   "public_key" character varying(256) NOT NULL,
   "preshared_key" character varying(256) NULL,
-  "persistent_keepalive" integer NULL,
-  "allowed_ips" character varying(512) NULL,
+  "allowed_ips" text NULL,
   "address" character varying(256) NOT NULL,
   "updated_at" timestamptz NOT NULL DEFAULT NOW(),
   "created_at" timestamptz NOT NULL DEFAULT NOW(),
@@ -92,10 +91,11 @@ EXECUTE FUNCTION notify_data_change();
 
 
 CREATE TABLE "server_template" (
-  "interface_id" integer NOT NULL,
+  "id" integer NOT NULL,
   "public_key" character varying(255) NOT NULL,
   "public_endpoint" character varying(128) NOT NULL,
   "ip_range" character varying(255) NULL,
+  "ip_prefix_len" smallint NULL,
   "client_dns" character varying(128) NULL,
   "client_pre_up" text NULL,
   "client_post_up" text NULL,
@@ -103,10 +103,9 @@ CREATE TABLE "server_template" (
   "client_post_down" text NULL,
   "client_fw_mark" integer NULL,
   "client_persistent_keepalive" integer NULL,
-  "client_allowed_ip" character varying(512) NULL,
+  "client_allowed_ip" text NULL,
   "client_mtu" integer NULL,
-  "client_table" character varying(32) NULL,
-  "client_interface_name" character varying(15) NULL
+  "client_table" integer NULL
 );
 ALTER TABLE "server_template"
-ADD FOREIGN KEY ("interface_id") REFERENCES "server_interface" ("id") ON DELETE CASCADE
+ADD FOREIGN KEY ("id") REFERENCES "server_interface" ("id") ON DELETE CASCADE

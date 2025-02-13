@@ -8,7 +8,13 @@ FwMark = {{ interface.fw_mark }}
 {% for peer in peers %}
 [Peer]
 PublicKey = {{ peer.public_key }}
-AllowedIPs = {{ peer.allowed_ips or peer.address+'/32' }}
+{% if not peer.allowed_ips -%}
+AllowedIPs = {{ peer.address }}
+{% else -%}
+{% for line in peer.allowed_ips.splitlines() -%}
+AllowedIPs = {{ line }}
+{% endfor -%}
+{% endif -%}
 {% if peer.preshared_key -%}
 PresharedKey = {{ peer.preshared_key }}
 {% endif -%}

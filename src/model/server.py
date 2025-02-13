@@ -9,7 +9,7 @@ from loggate import getLogger
 
 from config import get_config
 from lib.db import DBConnection, db_logger
-from lib.helper import checksum, cmd, get_file_content, write_file
+from lib.helper import checksum, cmd, get_file_content, render_template, write_file
 from model.interface import InterfaceSimple, InterfaceSimpleDB
 from model.peer import PeerDB
 
@@ -17,10 +17,6 @@ from model.peer import PeerDB
 WIREGUARD_CONFIG_FOLDER = get_config('WIREGUARD_CONFIG_FOLDER', wrapper=Path)
 
 logger = getLogger('wgserver')
-
-environment = jinja2.Environment(loader=jinja2.FileSystemLoader("templates/"))
-# environment.filters['b64encode'] = base64.b64encode
-
 
 
 class WGServer:
@@ -86,7 +82,8 @@ class WGServer:
                         db, 'interface_id=$1 AND enabled=true', iface.id
                     )
                     conf_file = self.get_config_from_iface(iface.interface_name)
-                    content = environment.get_template('interface_full.conf.j2').render(
+                    content = render_template(
+                        'interface_full.conf.j2',
                         interface=iface,
                         peers=peers
                     )
@@ -132,7 +129,8 @@ class WGServer:
                 self.__remove_interface(old_interface_name)
             peers = await PeerDB.gets(db, 'interface_id=$1 AND enabled=true', iface.id)
             conf_file = self.get_config_from_iface(iface.interface_name)
-            content = environment.get_template('interface_full.conf.j2').render(
+            content = render_template(
+                'interface_full.conf.j2',
                 interface=iface,
                 peers=peers
             )
@@ -161,7 +159,8 @@ class WGServer:
             db, 'interface_id=$1 AND enabled=true', iface.id
         )
         logger.info('Update config for %s', iface.interface_name)
-        content = environment.get_template('interface_update.conf.j2').render(
+        content = render_template(
+            'interface_update.conf.j2',
             interface=iface,
             peers=peers
         )
@@ -174,7 +173,8 @@ class WGServer:
                     'Problem updating interface %s.', iface.interface_name
                 )
         conf_file = self.get_config_from_iface(iface.interface_name)
-        content = environment.get_template('interface_full.conf.j2').render(
+        content = render_template(
+            'interface_full.conf.j2',
             interface=iface,
             peers=peers
         )

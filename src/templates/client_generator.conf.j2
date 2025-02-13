@@ -1,12 +1,13 @@
 [Interface]
-PrivateKey = {{ interface.get_private_key() }}
-{% if interface.public_key -%}
-# PublicKey = {{ interface.public_key }}
-{% endif -%}
-ListenPort = {{ interface.listen_port }}
+PrivateKey = {{ interface.private_key }}
 {% for line in interface.address.splitlines() -%}
 Address = {{ line }}
 {% endfor -%}
+{% if interface.dns -%}
+{% for line in interface.dns.splitlines() -%}
+Dns = {{ line }}
+{% endfor -%}
+{% endif -%}
 {% if interface.fw_mark -%}
 FwMark = {{ interface.fw_mark }}
 {% endif -%}
@@ -38,16 +39,21 @@ PostDown = {{ line }}
 {% endif -%}
 
 {% for peer in peers %}
-[Peer]  # {{ peer.name }} ({{ peer.address }})
+[Peer]
 PublicKey = {{ peer.public_key }}
-{% if not peer.allowed_ips -%}
-AllowedIPs = {{ peer.address }}
+Endpoint = {{ peer.endpoint }}
+{% if not peer.allowed_ip -%}
+AllowedIPs = {{ interface.address | ip }}/32
 {% else -%}
-{% for line in peer.allowed_ips.splitlines() -%}
+{% for line in peer.allowed_ip.splitlines() -%}
 AllowedIPs = {{ line }}
 {% endfor -%}
 {% endif -%}
 {% if peer.preshared_key -%}
 PresharedKey = {{ peer.preshared_key }}
 {% endif -%}
+{% if peer.persistent_keepalive -%}
+PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endif -%}
+
 {% endfor %}

@@ -52,8 +52,8 @@ services:
 volumes:
   db-data:
 
-networks:
-  default:
-    driver: bridge
-    driver_opts:
-      'com.docker.network.bridge.name': "wireguarddb"
+# networks:
+#   default:
+#     driver: bridge
+#     driver_opts:
+#       'com.docker.network.bridge.name': "wireguarddb"

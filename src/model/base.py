@@ -3,7 +3,7 @@ import asyncpg
 from fastapi import HTTPException, status, Depends, Query
 from typing import TypeVar, Optional, List
 from pydantic import BaseModel
-from asyncpg import Connection
+from asyncpg import Connection, Record
 
 from lib.db import DBConnection
 
@@ -66,10 +66,9 @@ class BaseDBModel:
             DBConnection.register_startup(handler)
 
     @staticmethod
-    def get_object(cls, row):
-        # for key, val in row.items():
-        #     if cls.model_fields[key]
-        return cls(**row)
+    def get_object(cls, row: Record):
+        # We need to remove duplicate couloms from record (e.g. id from two tables)
+        return cls(**dict(row.items()))
 
     @classmethod
     async def get(cls, db: Connection, query: str | int | G, *args, **kwargs
@@ -164,8 +163,8 @@ class BaseDBModel:
     @classmethod
     async def create(cls, db: Connection, create: C, **kwargs) -> G:
         _cls = kwargs.pop('_cls', cls)
-        _reload_after_create = kwargs.pop('_reload_after_create',
-                                          getattr(_cls.Meta, 'reload_after_create', False))
+        # _reload_after_create = kwargs.pop('_reload_after_create',
+        #                                   getattr(_cls.Meta, 'reload_after_create', False))
         org_create = create
         if hasattr(_cls, 'pre_create') and (pre := await _cls.pre_create(db, create, **kwargs)):
             create = pre
@@ -188,17 +187,19 @@ class BaseDBModel:
                 f'VALUES ({",".join(indexes)}) RETURNING *;',
                 *values
             )
-            data = dict(**row)
-            if hasattr(_cls, 'post_sql_create'):
-                await _cls.post_sql_create(db, data, create, **kwargs)
         except asyncpg.exceptions.IntegrityConstraintViolationError as e:
             raise ConstrainError(str(e))
-        if not _reload_after_create:
-            obj = _cls.Meta.PYDANTIC_CLASS(**data)
-        else:
-            obj = await _cls.get(db, data['id'])
-        if hasattr(_cls, 'post_create') and (post := await _cls.post_create(db, obj, org_create, **kwargs)):
+        data = dict(**row)
+        if hasattr(_cls, 'post_sql_create'):
+            await _cls.post_sql_create(db, data, create, **kwargs)
+        # if not _reload_after_create:
+            # obj = _cls.Meta.PYDANTIC_CLASS(**data)
+        # else:
+        #     obj = await _cls.get(db, data['id'])
+        if hasattr(_cls, 'post_create') and (post := await _cls.post_create(db, data, org_create, **kwargs)):
             obj = post
+        else:
+            obj = _cls.Meta.PYDANTIC_CLASS(**data)
         return obj
 
     @classmethod
@@ -219,9 +220,10 @@ class BaseDBModel:
 
     @classmethod
     def convert_object(cls, obj, toClass, **kwargs) -> BaseModel:
-        params = kwargs
-        for k, m in toClass.model_fields.items():
-            params[k] = getattr(obj, k, m.default)
+        # We need to remove duplicate couloms from record (e.g. id from two tables)
+        params = dict(**obj.model_dump()) if isinstance(obj, BaseModel) else obj
+        params.update(kwargs)
+        print(params)
         return toClass(**params)
 
     @classmethod

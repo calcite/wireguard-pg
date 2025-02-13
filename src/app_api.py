@@ -48,8 +48,10 @@ if get_config('API_ENABLED', wrapper=to_bool):
                        'accessible for everyone. This is only for debug.')
     from endpoints.interface import router as interface_router        # noqa
     from endpoints.peer import router as peer_router                  # noqa
+    from endpoints.tool import router as tool_router                  # noqa
     app.include_router(interface_router, prefix="/api/interface")
     app.include_router(peer_router, prefix="/api/peer")
+    app.include_router(tool_router, prefix="/api/tool")
 
 
 @app.get("/", include_in_schema=False)
