@@ -56,4 +56,3 @@ async def create(create: PeerCreate,
     async with pool.acquire_with_log(sql_logger) as db, db.transaction():
         create = PeerDB.convert_object(create, PeerCreatePrivateKey)
         return await PeerDB.create(db, create)
-

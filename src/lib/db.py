@@ -2,12 +2,11 @@ import asyncio
 from typing import Callable
 import loggate
 import re
-from asyncpg.connection import Connection
-from asyncpg.protocol import Record
-from asyncpg.pool import PoolAcquireContext
 from pathlib import Path
 from asyncpg import connect, Pool, Connection, UndefinedTableError
 from asyncpg.connection import LoggedQuery
+from asyncpg.protocol import Record
+from asyncpg.pool import PoolAcquireContext
 
 
 from config import get_config, to_bool
@@ -21,6 +20,7 @@ POSTGRES_POOL_MIN_SIZE = get_config('POSTGRES_POOL_MIN_SIZE', wrapper=int)
 POSTGRES_POOL_MAX_SIZE = get_config('POSTGRES_POOL_MAX_SIZE', wrapper=int)
 POSTGRES_CONNECTION_TIMEOUT = get_config('POSTGRES_CONNECTION_TIMEOUT', wrapper=float)
 POSTGRES_CONNECTION_CHECK = get_config('POSTGRES_CONNECTION_CHECK', wrapper=float)
+
 
 class DBPoolAcquireContext(PoolAcquireContext):
 
@@ -43,16 +43,16 @@ class DBPoolAcquireContext(PoolAcquireContext):
 
     async def __aexit__(self, *exc):
         if self.conn:
-          self.conn.remove_query_logger(self.process)
+            self.conn.remove_query_logger(self.process)
         await super().__aexit__()
 
 
 class DBPool(Pool):
 
-  def acquire_with_log(self, logger, timeout=None) -> DBPoolAcquireContext:
-    if isinstance(logger, str):
-        logger = loggate.get_logger(logger)
-    return DBPoolAcquireContext(self, timeout, logger)
+    def acquire_with_log(self, logger, timeout=None) -> DBPoolAcquireContext:
+        if isinstance(logger, str):
+            logger = loggate.get_logger(logger)
+        return DBPoolAcquireContext(self, timeout, logger)
 
 
 class DBConnection:

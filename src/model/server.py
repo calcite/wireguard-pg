@@ -4,7 +4,6 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import List
 from asyncpg import Connection
-import jinja2
 from loggate import getLogger
 
 from config import get_config
@@ -22,11 +21,11 @@ logger = getLogger('wgserver')
 class WGServer:
 
     @staticmethod
-    def get_iface_from_config(path: str|Path):
+    def get_iface_from_config(path: str | Path):
         return os.path.basename(path).replace('.conf', '') if str(path).endswith('.conf') else path
 
     @staticmethod
-    def get_config_from_iface(iface: str|Path, path: Path = WIREGUARD_CONFIG_FOLDER) -> Path:
+    def get_config_from_iface(iface: str | Path, path: Path = WIREGUARD_CONFIG_FOLDER) -> Path:
         if str(iface).endswith('.conf'):
             return iface
         return path.joinpath(f'{iface}.conf')
@@ -105,7 +104,7 @@ class WGServer:
     async def stop_server(self, db_conn: DBConnection):
         logger.info('The application is stopped. Wireguard interfaces are still running.')
 
-    def __remove_interface(self, iface: str|Path):
+    def __remove_interface(self, iface: str | Path):
         self.interface_down(iface)
         conf_file = self.get_config_from_iface(iface)
         conf_file.unlink(True)
@@ -147,7 +146,7 @@ class WGServer:
                 self.interface_ids.remove(old_row['id'])
             self.__remove_interface(old_row.get('interface_name'))
 
-    async def __update_peer(self, db:Connection, iface_id):
+    async def __update_peer(self, db: Connection, iface_id: int):
         iface = await InterfaceSimpleDB.get(
             db,
             'id = $1 AND server_name = $2 AND enabled=true ',
@@ -191,6 +190,3 @@ class WGServer:
         if old_iface_id and iface_id != old_iface_id:
             await self.__update_peer(db, old_iface_id)
         await self.__update_peer(db, iface_id)
-
-
-

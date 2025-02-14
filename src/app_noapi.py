@@ -19,6 +19,7 @@ setup_logging(profiles=logging_profiles)
 logger = getLogger('main')
 wg_server = WGServer(SERVER_NAME)
 
+
 async def graceful_shutdown(loop, sig=None):
     """Cleanup tasks tied to the service's shutdown."""
     if sig:

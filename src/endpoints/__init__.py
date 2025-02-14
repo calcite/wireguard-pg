@@ -7,8 +7,10 @@ from config import get_config
 TOKEN = get_config('API_ACCESS_TOKEN')
 logger = loggate.get_logger('access')
 
+
 def get_token(request: Request) -> str:
     return request.headers.get("Authorization")
+
 
 def check_token(token: str):
     if not TOKEN:

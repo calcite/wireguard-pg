@@ -8,7 +8,6 @@ from lib.helper import get_file_content, get_wg_private_key, get_wg_public_key, 
 from model.base import BaseDBModel
 
 
-
 logger = loggate.getLogger('Interface')
 
 class InterfaceError(Exception): pass    # noqa
@@ -16,6 +15,7 @@ class InterfaceError(Exception): pass    # noqa
 #################################################################################
 #   InterfaceSimple
 #################################################################################
+
 
 class InterfaceSimpleUpdate(BaseModel):
     server_name: str = Field(max_length=64)
@@ -72,7 +72,6 @@ class InterfaceTemplateUpdate(BaseModel):
     client_allowed_ips: Optional[str] = Field(None)
     client_mtu: Optional[int] = Field(None)
     client_table: Optional[int] = Field(None)
-
 
 
 class InterfaceTemplateCreate(InterfaceTemplateUpdate):
@@ -158,9 +157,7 @@ class InterfaceDB(BaseDBModel):
         return [ip_interface(it['address']).ip for it in rows]
 
     @classmethod
-    async def get_free_ips(
-        cls, db: Connection, interface: Interface | InterfaceCreate | InterfaceUpdate
-        ) -> List[IPv4Interface]:
+    async def get_free_ips(cls, db: Connection, interface: Interface) -> List[IPv4Interface]:
         if not interface.ip_range:
             return
         ips = set(ip_range_to_ips(interface.ip_range))

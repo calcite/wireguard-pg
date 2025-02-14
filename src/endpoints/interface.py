@@ -61,6 +61,7 @@ async def create(create: InterfaceCreate,
 class FreeIp(BaseModel):
     ip: str
 
+
 @router.get("/{interface_id}/free_ip", response_model=FreeIp)
 async def get_free_ip(interface_id: int,
                       pool: DBPool = Depends(db_pool),

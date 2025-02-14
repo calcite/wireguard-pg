@@ -2,7 +2,6 @@ from ipaddress import ip_interface
 from typing import Optional
 from datetime import datetime
 from asyncpg import Connection
-import jinja2
 from pydantic import BaseModel, Field, model_validator
 from lib.helper import get_qrcode_based64, get_wg_private_key, get_wg_public_key, render_template
 from model.base import BaseDBModel
@@ -35,6 +34,7 @@ class PeerCreatePrivateKey(PeerCreate):
             data['private_key'] = get_wg_private_key()
             data['public_key'] = get_wg_public_key(data['private_key'])
         return data
+
 
 class PeerCreated(PeerUpdate):
     id: int
@@ -85,4 +85,3 @@ class PeerDB(BaseDBModel):
         )
         peer.qrcode = get_qrcode_based64(peer.client_config)
         return peer
-

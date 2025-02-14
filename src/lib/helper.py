@@ -35,18 +35,20 @@ def get_file_content(filename) -> str:
     with open(filename, 'r') as fd:
         return fd.read()
 
+
 def write_file(file_name: str, content: str, mode: int = 0o777):
-        desc = os.open(
-            path=file_name,
-            flags=(
-                os.O_WRONLY |
-                os.O_CREAT |
-                os.O_TRUNC
-            ),
-            mode=0o700
-        )
-        with open(desc, 'w') as fd:
-            fd.write(content)
+    desc = os.open(
+        path=file_name,
+        flags=(
+            os.O_WRONLY |
+            os.O_CREAT |
+            os.O_TRUNC
+        ),
+        mode=0o700
+    )
+    with open(desc, 'w') as fd:
+        fd.write(content)
+
 
 def dict_bytes2str(dd):
     res = {}
@@ -97,10 +99,12 @@ def cmd(*args, capture_output=True, ignore_error=False) -> subprocess.CompletedP
             )
     return None
 
+
 def get_wg_preshared_key() -> str:
     return subprocess.run(
         ('wg', 'genpsk'), capture_output=True, text=True, check=True
     ).stdout.strip()
+
 
 def get_wg_private_key() -> str:
     return subprocess.run(
@@ -168,6 +172,7 @@ def optimalize_ip_range(ip_range) -> str:
         return ip_range
     if len(ip_range) < len(new_range):
         return new_range
+
 
 def get_qrcode(content: str) -> io.BytesIO:
     qr = qrcode.make(content, image_factory=PyPNGImage)

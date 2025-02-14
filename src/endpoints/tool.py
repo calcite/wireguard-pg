@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi.responses import StreamingResponse
 import loggate
-from fastapi import APIRouter, Depends, Security, status
+from fastapi import APIRouter, Security
 from pydantic import BaseModel
 from endpoints import check_token, get_token
 from lib.helper import get_qrcode, get_wg_preshared_key, get_wg_private_key, get_wg_public_key, render_template
@@ -9,6 +9,7 @@ from lib.helper import get_qrcode, get_wg_preshared_key, get_wg_private_key, get
 router = APIRouter(tags=["tool"])
 sql_logger = 'sql.peer'
 logger = loggate.getLogger('Tool')
+
 
 class SecretPair(BaseModel):
     private_key: str
@@ -68,8 +69,9 @@ async def get_client_config(data: GenerateConfig,
         peers=data.peers
     )
 
+
 @router.post("/generate_client_qrcode")
-async def get_client_config(data: GenerateConfig,
+async def get_client_qrcode(data: GenerateConfig,
                             token: bool = Security(get_token)):
     check_token(token)
     conf = render_template(
