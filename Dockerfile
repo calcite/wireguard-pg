@@ -24,6 +24,8 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 COPY src/ /app
 COPY pyproject.toml /app/
 COPY pdm.lock  /app/
@@ -39,4 +41,4 @@ ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/entrypoint.sh"]
