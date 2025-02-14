@@ -69,7 +69,7 @@ class InterfaceTemplateUpdate(BaseModel):
     client_post_down: Optional[str] = Field(None)
     client_fw_mark: Optional[int] = Field(None)
     client_persistent_keepalive: Optional[int] = Field(None)
-    client_allowed_ip: Optional[str] = Field(None)
+    client_allowed_ips: Optional[str] = Field(None)
     client_mtu: Optional[int] = Field(None)
     client_table: Optional[int] = Field(None)
 
@@ -129,7 +129,7 @@ class InterfaceDB(BaseDBModel):
     class Meta:
         db_table = 'server_interface'
         PYDANTIC_CLASS = Interface
-        DEFAULT_SORT_BY: str = 'id'
+        DEFAULT_SORT_BY: str = 'f.id'
         sub_sql = 'LEFT JOIN "server_template" st USING("id")'
         sub_columns = ',st.*'
 

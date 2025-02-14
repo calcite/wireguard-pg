@@ -42,10 +42,10 @@ PostDown = {{ line }}
 [Peer]
 PublicKey = {{ interface.public_key }}
 Endpoint = {{ interface.public_endpoint }}
-{% if not interface.client_allowed_ip -%}
+{% if not interface.client_allowed_ips -%}
 AllowedIPs = {{ interface.address | ip }}/32
 {% else -%}
-{% for line in interface.client_allowed_ip.splitlines() -%}
+{% for line in interface.client_allowed_ips.splitlines() -%}
 AllowedIPs = {{ line }}
 {% endfor -%}
 {% endif -%}

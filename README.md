@@ -5,11 +5,16 @@ It uses database tables to store and manage WireGuard interface and peer configu
 A single database can manage many WireGuard instances with many interfaces.
 The application can be integrated into your own application by adding/updating records in the database or using the REST API.
 
+This application can be used by two ways:
+- **disabled rest api**  - This case can be used when you want to use WireguardPG as subcomponent of your application. WireguardPG runs as standalone container and reads records/changes from the `server_interface` and `client_peer` tables (the `server_template` table is not required).
+
+- **enabled rest api** - To make changes to the database, the application provides a Rest API.
+
 ## Features
 
 - **Database-Driven Configuration:** Manage WireGuard interfaces and peers via records in PostgreSQL database.
 
-- **Dynamic Updates:** Apply changes without having to manually edit files or restart wireguard service.
+- **Dynamic Updates:** Apply changes without having to manually edit files or restart wireguard service. Only changes in interface makes restart the Wireguard interface.
 
 - **Scalable Management:** Easily handle multiple interfaces and peers with a centralized database.
 
@@ -21,25 +26,22 @@ The application can be integrated into your own application by adding/updating r
 
 The PostgreSQL database contains the following tables:
 
-1. `interface`
+1. `server_interface`
 
     Stores configuration details for WireGuard interfaces.
 
     | Column | Type |  | Description |
     | ----------- | ----------- | ----------- | ----------- |
     | id     | SERIAL  |   | Primary key |
-    | namserver_name   | VARCHAR(64) | | Name of application instance. |
-    | interface_name   | VARCHAR(64) | | Name of interface.    |
+    | server_name   | VARCHAR(64) | | Name of WireguardPG instance. The value `default` is default name. |
+    | interface_name   | VARCHAR(15) | | Name of interface.  (e.g `wg0`)  |
     | private_key  | VARCHAR(256) |  | Private key or path to private key file. (e.g. `file:///config/private.key`)
-    | public_key | VARCHAR(256) | optional; used by API | Public key. |
     | listen_port | INT | | Listen port |
-    | address | VARCHAR(256) | | IP address of the interface.
-    | dns | VARCHAR(256) | optional; used by API | DNS servers.
-    | public_endpoint | VARCHAR(256) | optional; used by API | Public address with port of WireGuard instance.
-    | ip_range | VARCHAR(256) | optional; used by API | IP subnet for automatically assign to peers.
+    | address | TEXT | | IP address of the interface. (e.g `192.168.1.1/24`)
+    | dns | VARCHAR(256) | optional | DNS servers.
     | mtu | INT |  optional |
     | fw_mark | INT | optional |
-    | table | VARCHAR(32) | optional | routing table
+    | table | INT | optional | routing table
     | pre_up | TEXT | optional |
     | post_up | TEXT | optional |
     | pre_down | TEXT | optional |
@@ -48,7 +50,7 @@ The PostgreSQL database contains the following tables:
     | created_at | TIMESTAMP | NOW() | Automatically set by create
     | enabled | BOOL | TRUE |
 
-2. `peer`
+2. `client_peer`
 
     Stores configuration details for WireGuard peers.
 
@@ -56,16 +58,37 @@ The PostgreSQL database contains the following tables:
     | ----------- | ----------- | ----------- | ----------- |
     | id     | SERIAL  |   | Primary key |
     | interface_id  | INT | | reference to interface
+    | public_key | VARCHAR(256) | | Public key.
+    | address | VARCHAR(256) | | IP address of the peer.
     | name |  VARCHAR(64) | | Name of the peer/user.
     | description |  VARCHAR(256) | optional | Description
-    | public_key | VARCHAR(256) | optional | Public key.
     | preshared_key | VARCHAR(256) | optional | Preshared key. |
-    | persistent_keepalive | INT | optional | in seconds
-    | allowed_ips | VARCHAR(256) |  |
-    | address | VARCHAR(256) | | IP address of the peer.
+    | allowed_ips | TEXT | optional | Default value is IP of server interface.
     | updated_at | TIMESTAMP | NOW() | Automatically set by update
     | created_at | TIMESTAMP | NOW() | Automatically set by create
     | enabled | BOOL | TRUE |
+
+3. `server_template`
+
+    This table is required only when is Rest API enabled. It contains default values for peers, IP pool for automatically assign peer's IP address.
+
+    | Column | Type | | Description |
+    | ----------- | ----------- | ----------- | ----------- |
+    | id     | INT  |   | ID of interface |
+    | public_endpoint | VARCHAR(256) | | Public address of WireGuard instance. (e.g. `vpn.example.com:51820`)
+    | ip_range | VARCHAR(256) | optional | IP range for automatic assignment to peers. (e.g. `10.10.10.5-10.10.10.254`)
+    | public_key | VARCHAR(256) |  | Interface public key. |
+    | client_dns | VARCHAR(128) | optional | client DNS servers.
+    | client_mtu | INT |  optional |
+    | client_fw_mark | INT | optional |
+    | client_table | INT | optional |
+    | client_pre_up | TEXT | optional |
+    | client_post_up | TEXT | optional |
+    | client_pre_down | TEXT | optional |
+    | client_post_down | TEXT | optional |
+    | client_persistent_keepalive | INT |  optional |
+    | client_allowed_ips | TEXT | optional | Default value is IP of server interface.
+
 
 ## Requirements
 
@@ -83,8 +106,6 @@ The PostgreSQL database contains the following tables:
     - `SERVER_NAME`: default
     - `DATABASE_URI`: postgres://user:password@localhost:5432/db?options=-c%20search_path=public
     - `DATABASE_INIT`: yes
-    - `DATABASE_INTERFACE_TABLE_NAME`: interface
-    - `DATABASE_PEER_TABLE_NAME`: peer
     - `POSTGRES_POOL_MIN_SIZE`: 5
     - `POSTGRES_POOL_MAX_SIZE`: 10
     - `POSTGRES_CONNECTION_TIMEOUT`: 5
@@ -116,7 +137,7 @@ The PostgreSQL database contains the following tables:
             volumes:
                 - wg-config:/config
             environment:
-                SERVER_NAME: "main_vpn"
+                SERVER_NAME: "default"
                 DATABASE_URL: "postgresql://dbuser:test@db:5432/devdb"
                 # Uncomment these lines if you want to use API
                 # API_ENABLED: yes
@@ -152,15 +173,15 @@ The PostgreSQL database contains the following tables:
 
 1. Add a new interface:
     ```sql
-    INSERT INTO interface (server_name, interface_name, address, private_key, public_key, public_endpoint, listen_port)
-    VALUES ('default', 'wg0', '10.0.0.1', 'your_private_key_here', 'public_key_here', 'peer_endpoint_here:51820', 51820);
+    INSERT INTO interface (server_name, interface_name, address, private_key, listen_port)
+    VALUES ('default', 'wg0', '10.0.0.1/24', 'your_private_key_here', 51820);
     ```
 
 1. Add a peer to the interface:
 
     ```sql
-    INSERT INTO peer (interface_id, name, public_key, allowed_ips, address)
-    VALUES (1, 'client1', 'peer_public_key_here', '10.0.0.2/32', '10.0.0.2');
+    INSERT INTO peer (interface_id, name, public_key, address)
+    VALUES (1, 'client1', 'peer_public_key_here', '10.0.0.2/32');
     ```
 
 1. The application detects changes and applies them to the WireGuard server.
@@ -182,33 +203,43 @@ The PostgreSQL database contains the following tables:
     > curl -X POST "http://localhost:8000/api/interface/" \
         -H "Content-Type: application/json" \
         -H "Authorization: $API_ACCESS_TOKEN" \
-        -d '{"server_name": "default", "interface_name": "wg1", "private_key": "file:///config/privkey_wg1", "public_key": "MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=", "listen_port": 5123, "public_endpoint": "public_ip_of_this_host:5123", "ip_range": "10.10.11.1 - 10.10.11.255"}'
+        -d '{"server_name": "default", "interface_name": "wg1", "private_key": "file:///config/privkey_wg1", "public_key": "MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=", "listen_port": 5123, "public_endpoint": "public_ip_of_this_host:5123", "ip_range": "10.10.11.1 - 10.10.11.255", "address": "10.10.11.1/24"}'
     ```
 1. Check our new interface
     ```shell
     > curl "http://localhost:8000/api/interface/" \
         -H "Authorization: $API_ACCESS_TOKEN" | jq
     {
-        "id": 1,
-        "server_name": "default",
-        "interface_name": "wg1",
-        "private_key": "file:///config/privkey_wg1",
-        "public_key": "MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=",
-        "listen_port": 5123,
-        "address": "10.10.11.1",
-        "dns": null,
-        "public_endpoint": "public_ip_of_this_host:5123",
-        "ip_range": "10.10.11.1 - 10.10.11.255",
-        "mtu": null,
-        "fw_mark": null,
-        "table": null,
-        "pre_up": null,
-        "post_up": null,
-        "pre_down": null,
-        "post_down": null,
-        "enabled": true,
-        "updated_at": "2025-01-29T13:32:32.999401Z",
-        "created_at": "2025-01-27T19:58:32.531101Z"
+    "public_key": "MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=",
+    "public_endpoint": "public_ip_of_this_host:5123",
+    "ip_range": "10.10.11.1 - 10.10.11.255",
+    "client_dns": null,
+    "client_pre_up": null,
+    "client_post_up": null,
+    "client_pre_down": null,
+    "client_post_down": null,
+    "client_fw_mark": null,
+    "client_persistent_keepalive": null,
+    "client_allowed_ips": null,
+    "client_mtu": null,
+    "client_table": null,
+    "server_name": "default",
+    "interface_name": "wg1",
+    "private_key": "file:///config/privkey_wg1",
+    "listen_port": 5123,
+    "address": "10.10.11.1/24",
+    "dns": null,
+    "mtu": null,
+    "fw_mark": null,
+    "table": null,
+    "pre_up": null,
+    "post_up": null,
+    "pre_down": null,
+    "post_down": null,
+    "enabled": true,
+    "id": 1,
+    "updated_at": "2025-02-12T21:38:32.974480Z",
+    "created_at": "2025-02-10T10:29:03.120449Z"
     }
     ```
 1. Create a new peer. Keys are generated automatically, but private key is not stored.
@@ -225,12 +256,12 @@ The PostgreSQL database contains the following tables:
         "public_key": "KW1jkHQrXY6PIK1+IlOEUiUwb3AEh1BzulZNC+MdrUc=",
         "preshared_key": null,
         "persistent_keepalive": null,
-        "allowed_ips": "0.0.0.0/0",
-        "address": "10.10.11.2",
+        "allowed_ips": "10.10.11.1/32",
+        "address": "10.10.11.2/32",
         "enabled": true,
         "id": 1,
         "private_key": "GFaQ+GMqrNY/O+yPeSIH+MNMXAcdbg+c04blv5NOxGk=",
-        "client_config": "[Interface]/nPrivateKey = GFaQ+GMqrNY/O+yPeSIH+MNMXAcdbg+c04blv5NOxGk=/n# PublicKey = KW1jkHQrXY6PIK1+IlOEUiUwb3AEh1BzulZNC+MdrUc=/nAddress = 10.10.11.2/n/n[Peer]/nPublicKey = MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=/nEndpoint = public_ip_of_this_host:5123/nAllowedIPs = 0.0.0.0/0",
+        "client_config": "[Interface]/nPrivateKey = GFaQ+GMqrNY/O+yPeSIH+MNMXAcdbg+c04blv5NOxGk=/n# PublicKey = KW1jkHQrXY6PIK1+IlOEUiUwb3AEh1BzulZNC+MdrUc=/nAddress = 10.10.11.2/32/n/n[Peer]/nPublicKey = MctbQe3QCYTb0BmAK4pfJHQBqc3E4Vtjha42bL7HiWA=/nEndpoint = public_ip_of_this_host:5123/nAllowedIPs = 10.10.11.1/32",
         "updated_at": "2025-01-29T18:47:35.942545Z",
         "created_at": "2025-01-29T18:47:35.942545Z"
     }
