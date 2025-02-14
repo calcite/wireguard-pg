@@ -18,7 +18,7 @@
         "cwd": "${workspaceFolder}/src/",
         "console": "internalConsole",
         "env": {
-          "DATABASE_URI": "postgresql://dbuser:test@db:5432/devdb",
+          "DATABASE_URI": "postgresql://dbuser:test@db:5432/devdb?options=-c%20search_path=public",
           "API_ENABLED": "yes",
           "REQUIRED_API_TOKEN": "no",
           "WIREGUARD_CONFIG_FOLDER": "/workspace/tmp",

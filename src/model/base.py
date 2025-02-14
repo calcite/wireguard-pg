@@ -150,10 +150,11 @@ class BaseDBModel:
         if not values:
             return obj
         try:
-            await db.execute(
-                f'UPDATE "{_cls.Meta.db_table}" SET {",".join(columns)} WHERE id = {obj.id}',
-                *values
-            )
+            if not kwargs.get('_drain'):
+                await db.execute(
+                    f'UPDATE "{_cls.Meta.db_table}" SET {",".join(columns)} WHERE id = {obj.id}',
+                    *values
+                )
         except asyncpg.exceptions.IntegrityConstraintViolationError as e:
             raise ConstrainError(str(e))
         if hasattr(_cls, 'post_update') and (post := await _cls.post_update(db, obj, org_update, **kwargs)):
@@ -163,8 +164,6 @@ class BaseDBModel:
     @classmethod
     async def create(cls, db: Connection, create: C, **kwargs) -> G:
         _cls = kwargs.pop('_cls', cls)
-        # _reload_after_create = kwargs.pop('_reload_after_create',
-        #                                   getattr(_cls.Meta, 'reload_after_create', False))
         org_create = create
         if hasattr(_cls, 'pre_create') and (pre := await _cls.pre_create(db, create, **kwargs)):
             create = pre
@@ -182,20 +181,21 @@ class BaseDBModel:
                     values.append(val)
                 indexes.append(f'${len(values)}')
         try:
-            row = await db.fetchrow(
-                f'INSERT INTO "{_cls.Meta.db_table}"  ({",".join(columns)}) '
-                f'VALUES ({",".join(indexes)}) RETURNING *;',
-                *values
-            )
+            if not kwargs.get('_drain'):
+                row = await db.fetchrow(
+                    f'INSERT INTO "{_cls.Meta.db_table}"  ({",".join(columns)}) '
+                    f'VALUES ({",".join(indexes)}) RETURNING *;',
+                    *values
+                )
+            else:
+                keys = [key for key, meta in fields.items() if not ext.get('no_save', False)]
+                row = dict(zip(keys, values))
+                row['id'] = 0
         except asyncpg.exceptions.IntegrityConstraintViolationError as e:
             raise ConstrainError(str(e))
         data = dict(**row)
         if hasattr(_cls, 'post_sql_create'):
             await _cls.post_sql_create(db, data, create, **kwargs)
-        # if not _reload_after_create:
-            # obj = _cls.Meta.PYDANTIC_CLASS(**data)
-        # else:
-        #     obj = await _cls.get(db, data['id'])
         if hasattr(_cls, 'post_create') and (post := await _cls.post_create(db, data, org_create, **kwargs)):
             obj = post
         else:
@@ -223,7 +223,6 @@ class BaseDBModel:
         # We need to remove duplicate couloms from record (e.g. id from two tables)
         params = dict(**obj.model_dump()) if isinstance(obj, BaseModel) else obj
         params.update(kwargs)
-        print(params)
         return toClass(**params)
 
     @classmethod

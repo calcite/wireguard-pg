@@ -77,6 +77,7 @@ class PeerDB(BaseDBModel):
     @classmethod
     async def post_create(cls, db: Connection, data: dict, create: PeerCreatePrivateKey, **kwargs):
         iface = await InterfaceDB.get(db, create.interface_id)
+        print(create)
         peer: PeerCreated = cls.convert_object(create, PeerCreated, **data)
         peer.client_config = render_template(
             'client.conf.j2',

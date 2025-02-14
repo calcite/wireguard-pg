@@ -40,6 +40,7 @@ CREATE TABLE "client_peer" (
   "created_at" timestamptz NOT NULL DEFAULT NOW(),
   "enabled" boolean NOT NULL DEFAULT true
 );
+COMMENT ON TABLE "client_peer" IS 'Wireguard peers';
 
 ALTER TABLE "client_peer"
 ADD FOREIGN KEY ("interface_id") REFERENCES "server_interface" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;

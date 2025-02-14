@@ -2,6 +2,7 @@ from typing import List
 import loggate
 from fastapi import APIRouter, Depends, Security, status
 
+from config import to_bool
 from endpoints import check_token, get_token
 from model.peer import PeerCreatePrivateKey, PeerCreated, PeerDB, Peer, PeerUpdate, PeerCreate
 from lib.db import db_pool, DBPool
@@ -50,9 +51,10 @@ async def delete(peer_id: int,
 @router.post("/", response_model=PeerCreated,
              status_code=status.HTTP_201_CREATED)
 async def create(create: PeerCreate,
+                 drain: str = "no",
                  pool: DBPool = Depends(db_pool),
                  token: bool = Security(get_token)):
     check_token(token)
     async with pool.acquire_with_log(sql_logger) as db, db.transaction():
         create = PeerDB.convert_object(create, PeerCreatePrivateKey)
-        return await PeerDB.create(db, create)
+        return await PeerDB.create(db, create, _drain=to_bool(drain))

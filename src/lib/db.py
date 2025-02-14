@@ -98,13 +98,12 @@ class DBConnection:
 
     def __init__(self) -> None:
         self.end = False
-        self.pool: Pool = None
+        self.pool: DBPool = None
         self.checking_task = None
         DBConnection.singleton = self
 
     async def update_db_schema(self):
-
-        async with self.pool.acquire() as db:
+        async with self.pool.acquire_with_log('db.init') as db:
             try:
                 schema = 'public'
                 if match := re.search(r'search_path=([^&\?]*)(&?|$)',
@@ -123,7 +122,7 @@ class DBConnection:
                 count = 0
             if count > 0:
                 return
-            migs = list(MIGRATION_DIR.glob('update_*.sql'))
+            migs = list(MIGRATION_DIR.glob('*.sql'))
             migs.sort()
             for file in migs:
                 logger.debug('Found db upgrade file %s', file)
