@@ -2,11 +2,6 @@
     "name": "WireGuardDB",
 	"remoteUser": "dev",
 	"workspaceFolder": "/workspace",
-    // "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-	// "mounts": [
-	// 	"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-	// ],
-	// "dockerFile": "./Dockerfile",
 	"dockerComposeFile": [
 		"docker-compose.yml"
 	],
@@ -21,75 +16,4 @@
             ]
         }
     }
-
-    // "build": {
-    //     "dockerfile": "Dockerfile",
-    //     "args": {
-    //         "USERNAME": "vscode"
-    //     }
-    // },
-    // Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-	//
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-	//
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
-	//
-	// Configure tool-specific properties.
-	// "customizations": {
-	// 	"vscode": {
-	// 		"settings": {
-	// 			// "editor.formatOnPaste": false,
-	// 			// "editor.formatOnSave": true,
-	// 			// "editor.formatOnType": true,
-	// 			// "editor.wordWrap": "bounded",
-	// 			// "editor.wrappingIndent": "indent",
-	// 			// "extensions.verifySignature": false,
-	// 			"editor.wordWrapColumn": 120,
-	// 			"editor.rulers": [
-	// 				80,
-	// 				100
-	// 			]
-	// 		},
-	// 		// Add the IDs of extensions you want installed when the container is created.
-	// 		"extensions": [
-    //             // "mtxr.sqltools",
-    //             // "mtxr.sqltools-driver-pg",
-    //             // "ms-azuretools.vscode-docker",
-    //             // "streetsidesoftware.code-spell-checker",
-    //             // "ms-python.python",
-    //             // "ms-python.autopep8",
-    //             // "ms-python.debugpy",
-    //             // "gabdug.pdm"
-    //         ]
-	// 	}
-	// },
-    // // Uncomment to use Docker from inside the container. See https://aka.ms/vscode-remote/samples/docker-in-docker.
-	// "mounts": [
-	// 	// 	"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-	// ],
-	// //
-	// Uncomment when using a ptrace-based debugger like C++, Go, and Rust
-	// "runArgs": [
-	// 	"--privileged",
-	// 	"--network=host",
-	// 	"--security-opt=seccomp:unconfined",
-	// 	"--security-opt=apparmor:unconfined",
-	// ],
-	//
-	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
-	// "remoteUser": "vscode", // "${localEnv:USER}",
-	//
-	// "remoteEnv": {
-	// 	"CONT_PROJECT_ROOT": "${containerWorkspaceFolder}",
-	// 	"HOST_PROJECT_ROOT": "${localWorkspaceFolder}"
-	// 	// "DATABASE_URI": "${containerEnv:DATABASE_URI}"
-	// },
-	// "containerEnv": {},
-    // "dockerComposeFile": "docker-compose.yml",
-    // "service": "app",
-    // "workspaceFolder": "/workspace"
-    // "forwardPorts": [9080]
   }
